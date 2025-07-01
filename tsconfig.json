@@ -18,7 +18,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+
+    // ✅ Add this line to allow `for...of` on Set, Map, etc.
+    "downlevelIteration": true
   },
   "include": [
     "src"

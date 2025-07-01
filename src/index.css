@@ -1,13 +1,31 @@
-body {
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+body, html, #root {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000000; /* Pure black background */
+  color: #e0e0e0;       /* Light gray text */
+  font-family: 'Orbitron', sans-serif; /* Sci-fi font */
+  overflow-x: hidden;   /* Prevent horizontal scroll only */
 }
 
+/* Canvas pages like HomePage can set their own overflow behavior */
+.canvas-page {
+  overflow: hidden;
+}
+
+/* Scrollable pages like Magazine */
+.scroll-page {
+  min-height: 100vh;
+  overflow-y: auto;
+  background: #000000;
+  color: #e0e0e0;
+  padding: 40px;
+}
+
+/* Code font */
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }

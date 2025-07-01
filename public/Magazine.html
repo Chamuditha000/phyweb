@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Double Page PDF Flipbook</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: black;
+      overflow: hidden;
+    }
+
+    .book {
+      width: 100%;
+      height: 100%;
+      perspective: 2500px;
+      position: relative;
+    }
+
+    .page {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      transform-origin: left center;
+      transform-style: preserve-3d;
+      transition: transform 0.6s ease;
+      backface-visibility: hidden;
+      cursor: grab;
+      z-index: 100;
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .page canvas {
+      width: 50% !important;
+      height: 100% !important;
+      margin: 0;
+      padding: 0;
+    }
+
+    .page.dragging {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body>
+  <div class="book" id="bookContainer"></div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    window.onload = () => {
+      const url = 'bb.pdf';
+      const book = document.getElementById("bookContainer");
+
+      const renderPDF = async () => {
+        const pdf = await pdfjsLib.getDocument(url).promise;
+
+        for (let i = 1; i <= pdf.numPages; i += 2) {
+          const leftPage = await pdf.getPage(i);
+          const rightPage = i + 1 <= pdf.numPages ? await pdf.getPage(i + 1) : null;
+
+          const pageDiv = document.createElement("div");
+          pageDiv.className = "page";
+
+          const leftCanvas = document.createElement("canvas");
+          const rightCanvas = document.createElement("canvas");
+
+          const setCanvasSize = (canvas, page) => {
+            const viewport = page.getViewport({ scale: 1 });
+            const scale = (book.clientHeight) / viewport.height;
+            const scaledViewport = page.getViewport({ scale });
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+            return scaledViewport;
+          };
+
+          const leftViewport = setCanvasSize(leftCanvas, leftPage);
+          await leftPage.render({ canvasContext: leftCanvas.getContext("2d"), viewport: leftViewport }).promise;
+
+          if (rightPage) {
+            const rightViewport = setCanvasSize(rightCanvas, rightPage);
+            await rightPage.render({ canvasContext: rightCanvas.getContext("2d"), viewport: rightViewport }).promise;
+          } else {
+            const ctx = rightCanvas.getContext("2d");
+            rightCanvas.width = book.clientWidth / 2;
+            rightCanvas.height = book.clientHeight;
+            ctx.fillStyle = "#111";
+            ctx.fillRect(0, 0, rightCanvas.width, rightCanvas.height);
+          }
+
+          leftCanvas.style.float = "left";
+          rightCanvas.style.float = "right";
+
+          pageDiv.appendChild(leftCanvas);
+          pageDiv.appendChild(rightCanvas);
+          book.appendChild(pageDiv);
+        }
+
+        initDragFlip();
+      };
+
+      function playFlipSound() {
+        const audio = new Audio("flip.mp3");
+        audio.volume = 0.5;
+        audio.play();
+      }
+
+      function initDragFlip() {
+        const pages = document.querySelectorAll(".page");
+        let isFlipping = false;
+
+        pages.forEach((page) => {
+          let startX = 0;
+          let currentX = 0;
+          let dragging = false;
+
+          const start = (x) => {
+            if (isFlipping) return;
+            isFlipping = true;
+            startX = x;
+            dragging = true;
+            page.style.transition = "none";
+            page.classList.add("dragging");
+          };
+
+          const move = (x) => {
+            if (!dragging) return;
+            currentX = x - startX;
+            const percent = Math.max(-180, Math.min(0, currentX / page.offsetWidth * -180));
+            page.style.transform = `rotateY(${percent}deg) scaleX(${1 - Math.abs(percent) / 900})`;
+          };
+
+          const end = () => {
+            if (!dragging) return;
+            dragging = false;
+            page.style.transition = "transform 0.6s ease";
+            page.classList.remove("dragging");
+
+            const flipThreshold = page.offsetWidth / 2;
+
+            if (!page.classList.contains("flipped") && currentX < -flipThreshold) {
+              page.classList.add("flipped");
+              page.style.transform = `rotateY(-179.8deg)`;
+              playFlipSound();
+            } else if (page.classList.contains("flipped") && currentX > flipThreshold) {
+              page.classList.remove("flipped");
+              page.style.transform = `rotateY(0deg)`;
+              playFlipSound();
+            } else {
+              page.style.transform = page.classList.contains("flipped")
+                ? `rotateY(-179.8deg)`
+                : `rotateY(0deg)`;
+            }
+
+            currentX = 0;
+            setTimeout(() => { isFlipping = false; }, 600);
+          };
+
+          page.addEventListener("mousedown", (e) => start(e.clientX));
+          window.addEventListener("mousemove", (e) => move(e.clientX));
+          window.addEventListener("mouseup", end);
+
+          page.addEventListener("touchstart", (e) => start(e.touches[0].clientX));
+          window.addEventListener("touchmove", (e) => move(e.touches[0].clientX));
+          window.addEventListener("touchend", end);
+        });
+      }
+
+      renderPDF();
+    };
+  </script>
+</body>
+</html>

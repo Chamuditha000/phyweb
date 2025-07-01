@@ -1,0 +1,81 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(#0d0f1a, #05060a);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.scene {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  perspective: 1500px;
+  background: linear-gradient(to bottom, #0a0c14 40%, #070a11 100%);
+  overflow: hidden;
+}
+
+/* Glowing platform ring under the flipbook */
+.platform-glow {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 100px;
+  background: radial-gradient(ellipse at center, rgba(0, 255, 255, 0.25), transparent 70%);
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 1;
+}
+
+/* The flipbook iframe container */
+.flipbook-container {
+  position: relative;
+  z-index: 2;
+  width: 600px;
+  height: 900px;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  transform: translateY(-40px) rotateX(2deg);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Embedded flipbook */
+.flipbook-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Floor grid lines */
+.floor-grid {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  background: repeating-linear-gradient(
+    to right,
+    rgba(0, 255, 255, 0.05) 0px,
+    rgba(0, 255, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 60px
+  ),
+  repeating-linear-gradient(
+    to top,
+    rgba(0, 255, 255, 0.05) 0px,
+    rgba(0, 255, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 60px
+  );
+  z-index: 0;
+  transform: perspective(800px) rotateX(75deg);
+  transform-origin: bottom center;
+  opacity: 0.3;
+}
