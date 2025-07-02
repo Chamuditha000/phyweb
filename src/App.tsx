@@ -9,7 +9,7 @@ import { Contact } from "./pages/contact";
 import { ProfileBadge } from "./pages/profilebadge";
 import { Magazine } from "./pages/Magazine";
 import { GlobalHomeButton } from "./pages/home"; // 👈 Import here
-
+import { Footer } from "./pages/footer";
 const App: React.FC = () => {
   return (
     <Router>
@@ -25,7 +25,7 @@ const App: React.FC = () => {
         <Route path="/magazine" element={<Magazine />} />
         <Route path="/profilebadge" element={<ProfileBadge />} />
       </Routes>
-
+      <Footer />
       {/* 🌟 Add globally visible floating Home button */}
       <GlobalHomeButton />
     </Router>
