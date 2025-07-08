@@ -3,6 +3,18 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html, Plane } from "@react-three/drei";
 import * as THREE from "three";
 
+import { useThree } from "@react-three/fiber";
+import { useEffect } from "react";
+
+function RotateCameraZ() {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    camera.rotation.y = Math.PI / 3; // ✅ ~22.5° Z-axis rotation
+  }, [camera]);
+
+  return null;
+}
 const members = [
   {
     name: "Prof. G D K Mahanama",
@@ -98,19 +110,20 @@ function FloatingCard({
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     ref.current.position.y = position[1] + Math.sin(t + position[0]) * 0.3;
+    ref.current.rotation.y = t * 0.2; // 🌀 slow rotation
   });
 
   return (
     <group position={position} ref={ref}>
       {/* === Glow Plane Behind === */}
 
-      <Plane args={[4.8, 8.8]}>
+      <Plane args={[8.8, 13.5]}>
         <meshStandardMaterial color="#111" />
-        <Html center distanceFactor={3.6}>
+        <Html center distanceFactor={3.8}>
           <div
             style={{
-              width: "480px",
-              height: "880px",
+              width: "1000px",
+              height: "1780px",
               background: "#111",
               border: "1px solid #00ffff",
               borderRadius: "8px",
@@ -128,11 +141,11 @@ function FloatingCard({
             <img
               src={member.image}
               alt={member.name}
-              style={{ width: "100%", height: "700px", objectFit: "cover" }}
+              style={{ width: "100%", height: "1400px", objectFit: "cover" }}
             />
             <div style={{ padding: "8px" }}>
-              <h1 style={{ margin: 0, fontSize: "2.5rem" }}>{member.name}</h1>
-              <p style={{ margin: 0, color: "#ccc", fontSize: "2.9rem" }}>
+              <h1 style={{ margin: 0, fontSize: "5.5rem" }}>{member.name}</h1>
+              <p style={{ margin: 0, color: "#ccc", fontSize: "5.9rem" }}>
                 {member.role}
               </p>
             </div>
@@ -144,19 +157,23 @@ function FloatingCard({
 }
 
 export const Team = () => {
-  // Row structure: 3 - 2 - 4 - 7
-  const layout = [2, 3, 4, 7];
-  const rowZGap = 4;
-  const rowY = 0;
+  const layout = [2, 3, 4, 7]; // cards per row
+
+  const spacingXList = [10, 12, 14, 12]; // horizontal spacing per row
+  const rowZList = [0, -25, -55, -75]; // depth per row (Z)
+  const rowYList = [-2, -4, -1, 4]; // vertical height per row (Y)
 
   const positions: [number, number, number][] = [];
   let idx = 0;
 
   layout.forEach((count, rowIndex) => {
-    const z = -rowIndex * rowZGap;
+    const spacingX = spacingXList[rowIndex] ?? 10;
+    const z = rowZList[rowIndex] ?? -rowIndex * 25;
+    const y = rowYList[rowIndex] ?? -4;
+
     for (let i = 0; i < count; i++) {
-      const x = (i - (count - 1) / 2) * 3 + (Math.random() - 0.5); // centered + jitter
-      positions.push([x, rowY, z]);
+      const x = (i - (count - 1) / 2) * spacingX;
+      positions.push([x, y, z]);
       idx++;
     }
   });
@@ -170,15 +187,16 @@ export const Team = () => {
         position: "relative",
       }}
     >
-      <Canvas camera={{ position: [9, 12, 14], fov: 50 }}>
+      <Canvas camera={{ position: [0, 9, 55], fov: 20 }}>
+        <RotateCameraZ />
         <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1.2} />
+        <pointLight position={[0, 20, 20]} intensity={1.2} />
         <OrbitControls
           enablePan={false}
-          enableRotate={true}
+          enableRotate={false}
           enableZoom={true}
-          minDistance={2}
-          maxDistance={10}
+          minDistance={20}
+          maxDistance={80}
         />
         {members.map((member, i) => (
           <FloatingCard key={i} position={positions[i]} member={member} />
