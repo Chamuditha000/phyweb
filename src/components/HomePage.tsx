@@ -21,7 +21,11 @@ export const HomePage = () => {
 
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
-      <Canvas shadows camera={{ position: [8, 4, 8], fov: 50 }}>
+      <Canvas
+        shadows
+        camera={{ position: [8, 4, 8], fov: 50 }}
+        style={{ width: "100%", height: "100%" }} // ✅ Add this
+      >
         {/* Lighting Setup */}
         <ambientLight color="#ffcc88" intensity={1.4} />
         <directionalLight
@@ -43,7 +47,7 @@ export const HomePage = () => {
         <OrbitControls
           enablePan={false}
           enableRotate={false}
-          enableZoom={true}
+          enableZoom={false}
           minDistance={7}
           maxDistance={13}
         />
