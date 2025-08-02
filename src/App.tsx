@@ -5,6 +5,7 @@ import { Introduction } from "./pages/intro";
 import { Projects } from "./pages/project";
 import { AboutUs } from "./pages/aboutus";
 import { Team } from "./pages/Team";
+import { History } from "./pages/History";
 import { Contact } from "./pages/contact";
 import { ProfileBadge } from "./pages/profilebadge";
 import { Magazine } from "./pages/Magazine";
@@ -20,7 +21,7 @@ const App: React.FC = () => {
 
         <Route path="/about" element={<AboutUs />} />
         <Route path="/team" element={<Team />} />
-
+        <Route path="/history" element={<History />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/magazine" element={<Magazine />} />
         <Route path="/profilebadge" element={<ProfileBadge />} />

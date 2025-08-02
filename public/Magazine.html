@@ -2,177 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Double Page PDF Flipbook</title>
+  <title>PDF Flipbook</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      width: 100%;
       background: black;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
-
     .book {
       width: 100%;
       height: 100%;
-      perspective: 2500px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       position: relative;
     }
-
-    .page {
-      width: 100%;
-      height: 100%;
+    canvas {
+      width: 45vw;
+      height: auto;
+      margin: 0 5px;
+      box-shadow: 0 0 10px #444;
+    }
+    .nav-buttons {
       position: absolute;
-      transform-origin: left center;
-      transform-style: preserve-3d;
-      transition: transform 0.6s ease;
-      backface-visibility: hidden;
-      cursor: grab;
-      z-index: 100;
-      overflow: hidden;
-      display: flex;
-      flex-direction: row;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
     }
-
-    .page canvas {
-      width: 50% !important;
-      height: 100% !important;
-      margin: 0;
-      padding: 0;
-    }
-
-    .page.dragging {
-      cursor: grabbing;
+    .nav-buttons button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      margin: 0 10px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div class="book" id="bookContainer"></div>
+  <div class="book">
+    <canvas id="leftPage"></canvas>
+    <canvas id="rightPage"></canvas>
+  </div>
+
+  <div class="nav-buttons">
+    <button id="prevBtn">⏪ Previous</button>
+    <button id="nextBtn">Next ⏩</button>
+  </div>
 
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    window.onload = () => {
-      const url = 'bb.pdf';
-      const book = document.getElementById("bookContainer");
+    let pdfDoc = null;
+    let currentPage = 1;
 
-      const renderPDF = async () => {
-        const pdf = await pdfjsLib.getDocument(url).promise;
+    const leftCanvas = document.getElementById("leftPage");
+    const rightCanvas = document.getElementById("rightPage");
+const renderPage = async (canvas, pageNum) => {
+  if (pageNum > pdfDoc.numPages) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
 
-        for (let i = 1; i <= pdf.numPages; i += 2) {
-          const leftPage = await pdf.getPage(i);
-          const rightPage = i + 1 <= pdf.numPages ? await pdf.getPage(i + 1) : null;
+  const page = await pdfDoc.getPage(pageNum);
+  const desiredScale = 1; // 🔍 Increase this if needed (2.5–3.0 is very crisp)
+  const viewport = page.getViewport({ scale: desiredScale });
 
-          const pageDiv = document.createElement("div");
-          pageDiv.className = "page";
+  // Match canvas size to PDF page size × devicePixelRatio
+  const dpi = window.devicePixelRatio || 1;
+  canvas.width = viewport.width * dpi;
+  canvas.height = viewport.height * dpi;
 
-          const leftCanvas = document.createElement("canvas");
-          const rightCanvas = document.createElement("canvas");
+  canvas.style.width = viewport.width + 'px';
+  canvas.style.height = viewport.height + 'px';
 
-          const setCanvasSize = (canvas, page) => {
-            const viewport = page.getViewport({ scale: 1 });
-            const scale = (book.clientHeight) / viewport.height;
-            const scaledViewport = page.getViewport({ scale });
-            canvas.width = scaledViewport.width;
-            canvas.height = scaledViewport.height;
-            return scaledViewport;
-          };
+  const context = canvas.getContext("2d");
+  context.setTransform(dpi, 0, 0, dpi, 0, 0); // Apply scaling to match pixel ratio
 
-          const leftViewport = setCanvasSize(leftCanvas, leftPage);
-          await leftPage.render({ canvasContext: leftCanvas.getContext("2d"), viewport: leftViewport }).promise;
+  await page.render({
+    canvasContext: context,
+    viewport: viewport
+  }).promise;
+};
 
-          if (rightPage) {
-            const rightViewport = setCanvasSize(rightCanvas, rightPage);
-            await rightPage.render({ canvasContext: rightCanvas.getContext("2d"), viewport: rightViewport }).promise;
-          } else {
-            const ctx = rightCanvas.getContext("2d");
-            rightCanvas.width = book.clientWidth / 2;
-            rightCanvas.height = book.clientHeight;
-            ctx.fillStyle = "#111";
-            ctx.fillRect(0, 0, rightCanvas.width, rightCanvas.height);
-          }
+    const renderCurrentSpread = async () => {
+      await renderPage(leftCanvas, currentPage);
+      await renderPage(rightCanvas, currentPage + 1);
+    };
 
-          leftCanvas.style.float = "left";
-          rightCanvas.style.float = "right";
-
-          pageDiv.appendChild(leftCanvas);
-          pageDiv.appendChild(rightCanvas);
-          book.appendChild(pageDiv);
-        }
-
-        initDragFlip();
-      };
-
-      function playFlipSound() {
-        const audio = new Audio("flip.mp3");
-        audio.volume = 0.5;
-        audio.play();
+    document.getElementById("nextBtn").addEventListener("click", async () => {
+      if (currentPage + 2 <= pdfDoc.numPages) {
+        currentPage += 2;
+        await renderCurrentSpread();
       }
+    });
 
-      function initDragFlip() {
-        const pages = document.querySelectorAll(".page");
-        let isFlipping = false;
-
-        pages.forEach((page) => {
-          let startX = 0;
-          let currentX = 0;
-          let dragging = false;
-
-          const start = (x) => {
-            if (isFlipping) return;
-            isFlipping = true;
-            startX = x;
-            dragging = true;
-            page.style.transition = "none";
-            page.classList.add("dragging");
-          };
-
-          const move = (x) => {
-            if (!dragging) return;
-            currentX = x - startX;
-            const percent = Math.max(-180, Math.min(0, currentX / page.offsetWidth * -180));
-            page.style.transform = `rotateY(${percent}deg) scaleX(${1 - Math.abs(percent) / 900})`;
-          };
-
-          const end = () => {
-            if (!dragging) return;
-            dragging = false;
-            page.style.transition = "transform 0.6s ease";
-            page.classList.remove("dragging");
-
-            const flipThreshold = page.offsetWidth / 2;
-
-            if (!page.classList.contains("flipped") && currentX < -flipThreshold) {
-              page.classList.add("flipped");
-              page.style.transform = `rotateY(-179.8deg)`;
-              playFlipSound();
-            } else if (page.classList.contains("flipped") && currentX > flipThreshold) {
-              page.classList.remove("flipped");
-              page.style.transform = `rotateY(0deg)`;
-              playFlipSound();
-            } else {
-              page.style.transform = page.classList.contains("flipped")
-                ? `rotateY(-179.8deg)`
-                : `rotateY(0deg)`;
-            }
-
-            currentX = 0;
-            setTimeout(() => { isFlipping = false; }, 600);
-          };
-
-          page.addEventListener("mousedown", (e) => start(e.clientX));
-          window.addEventListener("mousemove", (e) => move(e.clientX));
-          window.addEventListener("mouseup", end);
-
-          page.addEventListener("touchstart", (e) => start(e.touches[0].clientX));
-          window.addEventListener("touchmove", (e) => move(e.touches[0].clientX));
-          window.addEventListener("touchend", end);
-        });
+    document.getElementById("prevBtn").addEventListener("click", async () => {
+      if (currentPage - 2 >= 1) {
+        currentPage -= 2;
+        await renderCurrentSpread();
       }
+    });
 
-      renderPDF();
+    window.onload = async () => {
+      const url = 'bb.pdf'; // Must be in same folder
+      pdfDoc = await pdfjsLib.getDocument(url).promise;
+      await renderCurrentSpread();
     };
   </script>
 </body>

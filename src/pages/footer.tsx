@@ -7,7 +7,7 @@ export const Footer: React.FC = () => {
       <footer
         style={{
           textAlign: "center",
-          padding: "20px",
+          padding: "10px",
           fontSize: "0.9rem",
           fontFamily: "Orbitron, sans-serif",
           color: "#aaa",
@@ -26,7 +26,6 @@ export const Footer: React.FC = () => {
         </a>
       </footer>
 
-      {/* Jiggle animation style */}
       <style>{`
         @keyframes jiggle {
           0%, 100% { transform: rotate(0deg); }

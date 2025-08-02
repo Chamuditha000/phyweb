@@ -9,10 +9,11 @@ interface Event {
   month: string;
   title: string;
   description?: string;
+  numImages?: number;
 }
 
-function getImageFolder(month: string | undefined) {
-  return (month || "").toLowerCase().replace(/\s+/g, "").replace(/[^\w]/g, "");
+function getImageFolder(title: string | undefined) {
+  return (title || "").toLowerCase().replace(/\s+/g, "").replace(/[^\w]/g, "");
 }
 
 const events: Event[] = [
@@ -32,10 +33,11 @@ Our esteemed Patron Prof. G. D. K. Mahanama offered insightful advice and encour
 
 The AGM was not just an administrative meeting, it was a celebration of the society’s intellectual curiosity and collaborative spirit.
     `,
+    numImages: 9,
   },
   {
     month: "Sep 2024",
-    title: "Solar Observation & Stellar Night 2.0 ",
+    title: "Solar Observation  ",
     description: `
 
 Solar Observation at "SAHASAK NIMAVUM" – 25th September 2024
@@ -48,6 +50,14 @@ This hands-on event sparked curiosity and inspired young minds to explore the wo
 A special thanks to Mr. Kanishka Samararathna for his expert guidance in telescope setup and observation, making the experience even more impactful.
 
 A big thank you to everyone who took part in making this event a stellar success. Let’s continue reaching for the stars!
+    `,
+    numImages: 4,
+  },
+  {
+    month: "Sep 2024",
+    title: "Stellar Night",
+    description: `
+
 
 
 
@@ -60,12 +70,14 @@ Following the lecture, attendees enjoyed an engaging astronomy-related movie, of
 
 A big thank you to all who joined us for this memorable night, and we look forward to more cosmic adventures ahead!
 `,
+    numImages: 9,
   },
   {
     month: "Oct 2024",
-    title: "Notice Boards Launch & Telescope Workshop",
+    title: "Notice Board Launch ",
     description: `
-Notice Boards Launch
+
+Notice Board Launch
 
 Venue: Department of Physics Premises, University of Ruhuna
 
@@ -74,6 +86,13 @@ For the first time, the Physics Society launched two new notice boards at the De
 The boards will feature a variety of content, including articles, announcements about upcoming events, and even some fun physics memes to engage the community. It’s an accessible and interactive way for members to stay informed, get involved, and share their ideas.
 
 This initiative marks an exciting new chapter for the Physics Society, providing both a practical and entertaining resource for students and faculty alike.
+`,
+    numImages: 2,
+  },
+  {
+    month: "Oct 2024",
+    title: "Telescope Workshop ",
+    description: ` Telescope Workshop
 
 Telescope Workshop – 9th October 2024
 Venue: Physics Lecture Theater I & University Grounds, University of Ruhuna
@@ -86,10 +105,11 @@ The event was a fantastic opportunity for stargazing enthusiasts to enhance thei
 
 
 `,
+    numImages: 5,
   },
   {
     month: "Nov 2024",
-    title: "The Next Chapter: Interview Series  ",
+    title: "The Next Chapter Interview Series  ",
 
     description: `
     The Next Chapter: Interview Series 
@@ -110,11 +130,11 @@ Whether you’re considering studying abroad, looking for scholarships, or explo
 
 
 `,
+    numImages: 5,
   },
   {
     month: "Dec 2024",
-    title:
-      "Astro Photo Booth & Solar Observation Stall & Sandwich Stall & Muon Detector Launch",
+    title: "Faculty Day Stalls  ",
     description: `
 Astro Photo Booth & Solar Observation Stall + Sandwich Stall – 18th December 2024
 
@@ -131,8 +151,13 @@ Time: 9 AM onwards
 The Sandwich Stall served fresh, delicious sandwiches filled with melted cheese, eggs, and crunchy vegetables, a perfect treat to fuel attendees for the day.
 
 The event provided an excellent chance to connect with the university community, share knowledge, and enjoy some tasty snacks.
-
-
+`,
+    numImages: 8,
+  },
+  {
+    month: "Dec 2024",
+    title: "Muon Detector Launch  ",
+    description: `
 Muon Detector Launch – 22nd December 2024
 Venue: Department of Physics Mini Auditorium, University of Ruhuna
 
@@ -145,10 +170,11 @@ With the support of faculty members and the enthusiasm of our students, the laun
 
 
   `,
+    numImages: 4,
   },
   {
     month: "Jan 2025",
-    title: "CERN TALKS & Iced Coffee and Sandwich Stall",
+    title: "CERN TALKS",
     description: `
 CERN TALKS – 22nd January 2025
 Venue: Physics Mini Auditorium, University of Ruhuna
@@ -161,6 +187,14 @@ Leading up to the finale, two insightful introductory sessions were conducted by
 
 This event marked the grand conclusion of the CERN TALKS series, leaving attendees inspired and intellectually energized.
  
+
+  `,
+    numImages: 9,
+  },
+  {
+    month: "Jan 2025",
+    title: "Stalls at RUSS 2025 ",
+    description: `
 Iced Coffee & Sandwich Stall at RUSS 2025 – 23rd January 2025
 Venue: University of Ruhuna – RUSS 2025
 
@@ -175,6 +209,7 @@ Here’s to more exciting, engaging, and tasty events in the future!
 
 
 `,
+    numImages: 5,
   },
 
   {
@@ -198,6 +233,7 @@ Network effectively and enhance their online presence
 Strengthen both their personal and professional brands
 
 We extend our heartfelt thanks to all the participants for their enthusiasm and engagement, making this workshop a memorable and impactful event.`,
+    numImages: 9,
   },
 
   {
@@ -218,47 +254,59 @@ The magazine’s previous edition was published by Prof. G. D. K. Mahanama when 
 
 
 `,
+    numImages: 6,
   },
 ];
 
-// === Precomputed Static Image Positions (Guaranteed No Overlap, Grid-Based) ===
-const staticImagePositions = Array.from({ length: 9 }, (_, i) => {
-  const cols = 3;
-  const spacingX = 29;
-  const spacingY = 35;
-  const startX = 5;
-  const startY = 5;
+const groupedEvents = Object.values(
+  events.reduce((acc, event) => {
+    if (!acc[event.month])
+      acc[event.month] = { month: event.month, events: [] };
+    acc[event.month].events.push(event);
+    return acc;
+  }, {} as Record<string, { month: string; events: Event[] }>)
+);
 
-  const col = i % cols;
-  const row = Math.floor(i / cols);
-
-  const left = startX + col * spacingX + Math.random() * 3 - 1;
-  const top = startY + row * spacingY + Math.random() * 2 - 1;
-
-  const size = 350 + Math.random() * 100;
-  const rotate = (Math.random() - 0.5) * 30;
-
-  return {
-    top,
-    left,
-    size,
-    rotate,
-    index: i % 10,
-  };
-});
+function EventCard({
+  event,
+  offset,
+  groupIndex,
+  onClick,
+}: {
+  event: Event;
+  offset: [number, number];
+  groupIndex: number;
+  onClick: () => void;
+}) {
+  return (
+    <Html position={[groupIndex * 3.5 + offset[0], 1.5 + offset[1], 2]}>
+      <div
+        onClick={onClick}
+        style={{
+          position: "absolute",
+          background: "#001a33",
+          border: "1px solid #00ffff",
+          padding: "12px 16px",
+          borderRadius: "10px",
+          boxShadow: "0 0 10px #00ffff88",
+          color: "#00ffff",
+          fontFamily: "Orbitron, sans-serif",
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {event.title}
+      </div>
+    </Html>
+  );
+}
 
 function EventBlock({
   position,
   month,
-  title,
-  onClick,
-  onClickDisabled,
 }: {
   position: [number, number, number];
   month: string;
-  title: string;
-  onClick: () => void;
-  onClickDisabled: boolean;
 }) {
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
@@ -269,7 +317,7 @@ function EventBlock({
   });
 
   return (
-    <group ref={ref} position={position} onClick={onClick}>
+    <group ref={ref} position={position}>
       <Box args={[2.5, 1, 0.3]}>
         <meshStandardMaterial
           color="#00aaff"
@@ -279,55 +327,26 @@ function EventBlock({
           roughness={0.2}
         />
       </Box>
-      {!onClickDisabled && (
-        <Html distanceFactor={10} position={[0, 0.8, 0]}>
-          <>
-            <div
-              style={{
-                transform: "translate(-50%, -50%)",
-                background: "rgba(0, 26, 51, 0.85)",
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: "1px solid #00ffff",
-                color: "#00ffff",
-                fontFamily: "Orbitron, sans-serif",
-                fontSize: "1.2rem",
-                textAlign: "center",
-                minWidth: "140px",
-                boxShadow: "0 0 12px #00ffff99",
-                backdropFilter: "blur(5px)",
-              }}
-            >
-              <strong style={{ fontSize: "1.4rem" }}>{month}</strong>
-            </div>
-            {(() => {
-              const parts = title.split("&").map((t) => t.trim());
-              return parts.map((subTitle, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    top: `${70 + i * 70}px`,
-                    left: `${i % 2 === 0 ? -40 : 40}px`,
-                    background: "rgba(0, 26, 51, 0.8)",
-                    padding: "10px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid #00ffff",
-                    color: "#00ffff",
-                    fontSize: "1rem",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 0 10px #00ffff66",
-                    transform: `rotate(${(Math.random() - 0.5) * 10}deg)`,
-                    fontFamily: "Orbitron, sans-serif",
-                  }}
-                >
-                  {subTitle}
-                </div>
-              ));
-            })()}
-          </>
-        </Html>
-      )}
+      <Html distanceFactor={10} position={[0, 0.8, 0]}>
+        <div
+          style={{
+            transform: "translate(-50%, -50%)",
+            background: "rgba(0, 26, 51, 0.85)",
+            padding: "10px 16px",
+            borderRadius: "10px",
+            border: "1px solid #00ffff",
+            color: "#00ffff",
+            fontFamily: "Orbitron, sans-serif",
+            fontSize: "1.2rem",
+            textAlign: "center",
+            minWidth: "140px",
+            boxShadow: "0 0 12px #00ffff99",
+            backdropFilter: "blur(5px)",
+          }}
+        >
+          <strong style={{ fontSize: "1.4rem" }}>{month}</strong>
+        </div>
+      </Html>
     </group>
   );
 }
@@ -336,7 +355,7 @@ function CameraScroll({ scroll }: { scroll: number }) {
   const { camera } = useThree();
   const { x } = useSpring({
     x: scroll * 3,
-    config: { mass: 1, tension: 120, friction: 30 },
+    config: { mass: 1, tension: 220, friction: 130 },
   });
   useFrame(() => {
     const camX = x.get();
@@ -344,6 +363,50 @@ function CameraScroll({ scroll }: { scroll: number }) {
     camera.lookAt(camX, 0, 0);
   });
   return null;
+}
+
+function generateAutoFitImagePositions(
+  count: number,
+  panelWidth: number,
+  panelHeight: number
+) {
+  const aspectRatio = 4 / 3; // width:height
+  const maxCols = Math.ceil(Math.sqrt(count));
+  const maxRows = Math.ceil(count / maxCols);
+
+  const spacing = 20; // margin between images
+  const totalSpacingX = (maxCols + 1) * spacing;
+  const totalSpacingY = (maxRows + 1) * spacing;
+
+  const availableWidth = panelWidth - totalSpacingX;
+  const availableHeight = panelHeight - totalSpacingY;
+
+  const imageWidth = availableWidth / maxCols;
+  const imageHeight = Math.min(
+    availableHeight / maxRows,
+    imageWidth / aspectRatio
+  );
+
+  const positions = [];
+
+  for (let i = 0; i < count; i++) {
+    const col = i % maxCols;
+    const row = Math.floor(i / maxCols);
+
+    const left = spacing + col * (imageWidth + spacing);
+    const top = spacing + row * (imageHeight + spacing);
+
+    positions.push({
+      top,
+      left,
+      width: imageWidth,
+      height: imageHeight,
+      rotate: (Math.random() - 0.5) * 10,
+      index: i % 10,
+    });
+  }
+
+  return positions;
 }
 
 export const Projects = () => {
@@ -356,36 +419,25 @@ export const Projects = () => {
     const onScroll = () => {
       const scrollPercent =
         container.scrollLeft / (container.scrollWidth - container.clientWidth);
-      setScroll(scrollPercent * (events.length - 1));
+      setScroll(scrollPercent * (groupedEvents.length - 1));
     };
     container.addEventListener("scroll", onScroll);
     return () => container.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <div
-      id="timeline-scroll"
-      style={{
-        width: "100vw",
-        height: "100vh",
-        overflowX: "scroll",
-        overflowY: "hidden",
-        background: "black",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {selectedEvent && (
+    <>
+      {selectedEvent ? (
         <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
             width: "100vw",
             height: "100vh",
+            overflow: "hidden",
+            background: "black",
             display: "flex",
-            zIndex: 10,
           }}
         >
+          {/* Left panel: description */}
           <div
             style={{
               width: "40%",
@@ -394,7 +446,6 @@ export const Projects = () => {
               fontFamily: "Orbitron, sans-serif",
               padding: "30px 50px",
               overflowY: "auto",
-              height: "100vh",
             }}
           >
             <button
@@ -434,6 +485,8 @@ export const Projects = () => {
               </pre>
             </div>
           </div>
+
+          {/* Right panel: images */}
           <div
             style={{
               width: "60%",
@@ -443,18 +496,23 @@ export const Projects = () => {
               overflow: "hidden",
             }}
           >
-            {staticImagePositions.map((pos, i) => (
+            {generateAutoFitImagePositions(
+              selectedEvent?.numImages || 5,
+              window.innerWidth * 0.6, // 60% panel width
+              window.innerHeight
+            ).map((pos, i) => (
               <div
                 key={i}
                 style={{
                   position: "absolute",
-                  top: `${pos.top}%`,
-                  left: `${pos.left}%`,
-                  width: `${pos.size}px`,
-                  height: `${pos.size * 0.7}px`,
+                  top: `${pos.top}px`,
+                  left: `${pos.left}px`,
+                  width: `${pos.width}px`,
+                  height: `${pos.height}px`,
+
                   backgroundImage: `url('${
                     process.env.PUBLIC_URL
-                  }/images/${getImageFolder(selectedEvent?.month)}/${
+                  }/images/${getImageFolder(selectedEvent?.title)}/${
                     pos.index + 1
                   }.jpg')`,
                   backgroundSize: "cover",
@@ -467,73 +525,54 @@ export const Projects = () => {
             ))}
           </div>
         </div>
-      )}
-
-      <div
-        style={{
-          width: `${events.length * 300}px`,
-          height: "100vh",
-          position: "relative",
-        }}
-      >
-        <Canvas
-          style={{ position: "absolute", top: 0, left: 0 }}
-          camera={{ position: [0, 4, 10], fov: 45 }}
+      ) : (
+        <div
+          id="timeline-scroll"
+          style={{
+            width: "100vw",
+            height: "100vh",
+            overflowX: "scroll",
+            overflowY: "hidden",
+            background: "black",
+            whiteSpace: "nowrap",
+          }}
         >
-          <ambientLight intensity={0.4} />
-          <pointLight position={[10, 20, 10]} intensity={1.5} />
-          <CameraScroll scroll={scroll} />
-          {events.map((event, i) => (
-            <EventBlock
-              key={i}
-              position={[i * 3.5, 0, 2]}
-              month={event.month}
-              title={event.title}
-              onClick={() => event.description && setSelectedEvent(event)}
-              onClickDisabled={!!selectedEvent}
-            />
-          ))}
-
-          <mesh
-            position={[events.length * 1.5, 0, 2]}
-            rotation={[0, 0, Math.PI / 2]}
+          <div
+            style={{
+              width: `${groupedEvents.length * 300}px`,
+              height: "100vh",
+              position: "relative",
+            }}
           >
-            <cylinderGeometry args={[0.08, 0.08, events.length * 3 + 8, 32]} />
-            <meshStandardMaterial
-              color="#00ffff"
-              emissive="#00ffff"
-              emissiveIntensity={5}
-              transparent
-              opacity={0.9}
-            />
-          </mesh>
-          {!selectedEvent && (
-            <Html position={[-12, 2.5, -5]} distanceFactor={10}>
-              <div
-                style={{
-                  background: "rgba(0, 26, 51, 0.75)",
-                  padding: "20px 28px",
-                  borderRadius: "12px",
-                  border: "1px solid #00ffffaa",
-                  color: "#00ffff",
-                  fontFamily: "Orbitron, sans-serif",
-                  fontSize: "3.0rem",
-                  lineHeight: 1.6,
-                  maxWidth: "920px",
-                  boxShadow: "0 0 12px #00ffff88",
-                  backdropFilter: "blur(5px)",
-                  textAlign: "center",
-                }}
-              >
-                “In the silence between stars and <br /> the spark between
-                minds, we found <br /> our gravity — pulling ideas, <br />{" "}
-                people, and purpose into one <br /> radiant orbit”
-              </div>
-            </Html>
-          )}
-        </Canvas>
-        <FloatingChatBot />
-      </div>
-    </div>
+            <Canvas
+              style={{ position: "absolute", top: 0, left: 0 }}
+              camera={{ position: [0, 4, 10], fov: 45 }}
+            >
+              <ambientLight intensity={0.4} />
+              <pointLight position={[10, 20, 10]} intensity={1.5} />
+              <CameraScroll scroll={scroll} />
+              {groupedEvents.map((group, i) => (
+                <group key={i}>
+                  <EventBlock position={[i * 3.5, 0, 2]} month={group.month} />
+                  {group.events.map((event, j) => (
+                    <EventCard
+                      key={j}
+                      event={event}
+                      offset={[
+                        j * 1.2 - group.events.length * 0.6,
+                        1 + Math.sin(j),
+                      ]}
+                      groupIndex={i}
+                      onClick={() => setSelectedEvent(event)}
+                    />
+                  ))}
+                </group>
+              ))}
+            </Canvas>
+            <FloatingChatBot />
+          </div>
+        </div>
+      )}
+    </>
   );
 };

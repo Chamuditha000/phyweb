@@ -15,6 +15,7 @@ function RotateCameraZ() {
 
   return null;
 }
+const imageScaleList = [0.9, 1.0, 1.0, 1.0]; // e.g., enlarge first row images
 const members = [
   {
     name: "Prof. G D K Mahanama",
@@ -101,9 +102,11 @@ const members = [
 function FloatingCard({
   position,
   member,
+  imageScale = 1.0,
 }: {
   position: [number, number, number];
   member: any;
+  imageScale?: number;
 }) {
   const ref = useRef<THREE.Mesh>(null!);
 
@@ -122,17 +125,17 @@ function FloatingCard({
         <Html center distanceFactor={3.8}>
           <div
             style={{
-              width: "1000px",
-              height: "1780px",
+              width: `${1000 * imageScale}px`,
+              height: `${1780 * imageScale}px`,
               background: "#111",
               border: "1px solid #00ffff",
               borderRadius: "8px",
               overflow: "hidden",
               boxShadow: `
-      0 0 10px #00ffff,
-      0 0 20px #00ffff,
-      0 0 30px #00ffff66
-    `,
+        0 0 10px #00ffff,
+        0 0 20px #00ffff,
+        0 0 30px #00ffff66
+      `,
               color: "#00ffff",
               fontFamily: "Orbitron, sans-serif",
               textAlign: "center",
@@ -141,11 +144,15 @@ function FloatingCard({
             <img
               src={member.image}
               alt={member.name}
-              style={{ width: "100%", height: "1400px", objectFit: "cover" }}
+              style={{
+                width: "100%",
+                height: `${1400 * imageScale}px`,
+                objectFit: "cover",
+              }}
             />
-            <div style={{ padding: "8px" }}>
-              <h1 style={{ margin: 0, fontSize: "5.5rem" }}>{member.name}</h1>
-              <p style={{ margin: 0, color: "#ccc", fontSize: "5.9rem" }}>
+            <div style={{ padding: "5px" }}>
+              <h1 style={{ margin: 0, fontSize: "5.0rem" }}>{member.name}</h1>
+              <p style={{ margin: 0, color: "#ccc", fontSize: "5.0rem" }}>
                 {member.role}
               </p>
             </div>
@@ -161,11 +168,15 @@ export const Team = () => {
 
   const spacingXList = [10, 12, 14, 12]; // horizontal spacing per row
   const rowZList = [0, -25, -55, -75]; // depth per row (Z)
-  const rowYList = [-2, -4, -1, 4]; // vertical height per row (Y)
+  const rowYList = [-3, -4, -1, 4]; // vertical height per row (Y)
 
   const positions: [number, number, number][] = [];
   let idx = 0;
-
+  const memberMeta: {
+    position: [number, number, number];
+    member: any;
+    imageScale: number;
+  }[] = [];
   layout.forEach((count, rowIndex) => {
     const spacingX = spacingXList[rowIndex] ?? 10;
     const z = rowZList[rowIndex] ?? -rowIndex * 25;
@@ -173,7 +184,13 @@ export const Team = () => {
 
     for (let i = 0; i < count; i++) {
       const x = (i - (count - 1) / 2) * spacingX;
-      positions.push([x, y, z]);
+      const pos: [number, number, number] = [x, y, z];
+      positions.push(pos);
+      memberMeta.push({
+        position: pos,
+        member: members[idx],
+        imageScale: imageScaleList[rowIndex] ?? 1.0,
+      });
       idx++;
     }
   });
@@ -198,8 +215,13 @@ export const Team = () => {
           minDistance={20}
           maxDistance={80}
         />
-        {members.map((member, i) => (
-          <FloatingCard key={i} position={positions[i]} member={member} />
+        {memberMeta.map((item, i) => (
+          <FloatingCard
+            key={i}
+            position={item.position}
+            member={item.member}
+            imageScale={item.imageScale}
+          />
         ))}
       </Canvas>
 
