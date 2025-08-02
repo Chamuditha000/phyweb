@@ -3,7 +3,7 @@ import { useSpring, animated } from "@react-spring/web";
 
 const imageCount = 34;
 const images = Array.from(
-  { length: 20 },
+  { length: 34 },
   (_, i) => `${process.env.PUBLIC_URL}/imgg/story${i + 1}.jpg`
 );
 const getRandomRotation = () => Math.floor(Math.random() * 60 - 30); // -30° to +30°
