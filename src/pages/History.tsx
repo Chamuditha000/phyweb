@@ -4,7 +4,7 @@ import { useSpring, animated } from "@react-spring/web";
 const imageCount = 34;
 const images = Array.from(
   { length: 20 },
-  (_, i) => `${process.env.PUBLIC_URL}/img/story${i + 1}.jpg`
+  (_, i) => `${process.env.PUBLIC_URL}/imgg/story${i + 1}.jpg`
 );
 const getRandomRotation = () => Math.floor(Math.random() * 60 - 30); // -30° to +30°
 const getRandomOffset = () => Math.floor(Math.random() * 40 - 20); // ±20px
