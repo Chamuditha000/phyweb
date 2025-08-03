@@ -196,8 +196,8 @@ function BalloonGroup() {
         ))}
 
         <RoundedBox
-          position={[0, 0, 0]}
-          args={[2.7, 0.5, 0.1]}
+          position={[0, -0.5, 0.5]}
+          args={[5.7, 1.0, 0.1]}
           radius={0.1}
           smoothness={4}
         >
@@ -211,8 +211,8 @@ function BalloonGroup() {
         </RoundedBox>
 
         <Text
-          position={[0, 0, 0.06]}
-          fontSize={0.22}
+          position={[0, -0.5, 0.56]}
+          fontSize={0.46}
           color="black"
           anchorX="center"
           anchorY="middle"
