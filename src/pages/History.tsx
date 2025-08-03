@@ -32,23 +32,13 @@ export const History: React.FC = () => {
         background: "#f9f9fc",
         padding: "60px 20px",
         position: "relative",
+        overflow: "hidden", // optional
       }}
     >
-      <h1
-        style={{
-          textAlign: "center",
-          marginBottom: 80,
-          fontSize: "2.5rem",
-          fontFamily: "Georgia, serif",
-        }}
-      >
-        Our Story: The Journey of the Physics Society
-      </h1>
-
-      {/* Background side images */}
+      {/* 🌌 Render background images first */}
       {images.map((src, i) => {
         const isLeft = i % 2 === 0;
-        const top = `${(i / imageCount) * 400}vh`; // Spread over scrollable area
+        const top = `${(i / imageCount) * 400}vh`; // evenly spaced
         const rotation = getRandomRotation();
         const offset = getRandomOffset();
         return (
@@ -67,19 +57,33 @@ export const History: React.FC = () => {
               transform: `rotate(${rotation}deg)`,
               borderRadius: "50px",
               boxShadow: "0 4px 10px rgba(55, 53, 53, 0.3)",
-              zIndex: 1,
+              zIndex: 5, // 👈 ensures under all text
             }}
           />
         );
       })}
 
-      {/* Story content block */}
+      {/* 🏷️ Heading on top */}
+      <h1
+        style={{
+          textAlign: "center",
+          marginBottom: 80,
+          fontSize: "2.5rem",
+          fontFamily: "Georgia, serif",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        Our Story: The Journey of the Physics Society
+      </h1>
+
+      {/* 📜 Text block on top */}
       <animated.div
         style={{
           ...storyAnimation,
           maxWidth: "800px",
           margin: "0 auto",
-          background: "#c1c7d511",
+          background: "#c4c8d053",
           padding: "30px 40px",
           borderRadius: "12px",
           color: "black",
@@ -90,6 +94,8 @@ export const History: React.FC = () => {
           zIndex: 10,
         }}
       >
+        {/* ✍️ Long story paragraphs here */}
+
         {/* Your full story text goes here */}
         <p>
           Physics Society of the University of Ruhuna is built on a foundation

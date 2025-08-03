@@ -5,11 +5,21 @@ import { SceneSetup } from "./SceneSetup";
 import { PhysicsObjects } from "./physicsobj";
 import { useNavigate } from "react-router-dom";
 import { ProfileBadge } from "../pages/profilebadge";
+import { useState, useEffect } from "react";
 import { FloatingChatBot } from "../pages/floatingbot";
 
 export const HomePage = () => {
   const navigate = useNavigate();
+  const [showEnvironment, setShowEnvironment] = useState(false);
 
+  // Delay the environment loading by 2 minutes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEnvironment(true);
+    }, 0.5 * 60 * 1000); // 2 minutes in milliseconds
+
+    return () => clearTimeout(timer);
+  }, []);
   const buttons = [
     { name: "About Us", path: "/about" },
     { name: "Events", path: "/project" },
@@ -23,6 +33,7 @@ export const HomePage = () => {
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       <Canvas
         shadows
+        frameloop="demand"
         camera={{ position: [8, 4, 8], fov: 50 }}
         style={{ width: "100%", height: "100%" }} // ✅ Add this
       >
@@ -33,14 +44,19 @@ export const HomePage = () => {
           color="#ffdd99"
           intensity={1.8}
           castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={256}
+          shadow-mapSize-height={256}
           shadow-bias={-0.001}
         />
         <pointLight position={[10, 10, 10]} intensity={1} />
 
         {/* Scene Elements */}
-        <Environment preset="dawn" />
+        {/* Background */}
+        {!showEnvironment && <color attach="background" args={["#931b8bff"]} />}
+
+        {/* Optional delayed environment */}
+        {showEnvironment && <Environment preset="dawn" background={false} />}
+
         <SceneSetup />
 
         <PhysicsObjects />
