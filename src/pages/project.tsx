@@ -292,7 +292,9 @@ function EventCard({
           color: "#00ffff",
           fontFamily: "Orbitron, sans-serif",
           cursor: "pointer",
-          whiteSpace: "nowrap",
+          whiteSpace: "normal",
+          wordWrap: "break-word",
+          textAlign: "center",
         }}
       >
         {event.title}
@@ -553,14 +555,14 @@ export const Projects = () => {
               <CameraScroll scroll={scroll} />
               {groupedEvents.map((group, i) => (
                 <group key={i}>
-                  <EventBlock position={[i * 3.5, 0, 2]} month={group.month} />
+                  <EventBlock position={[i * 5, 0, 2]} month={group.month} />
                   {group.events.map((event, j) => (
                     <EventCard
                       key={j}
                       event={event}
                       offset={[
-                        j * 1.2 - group.events.length * 0.6,
-                        1 + Math.sin(j),
+                        j * 2 - group.events.length * 0.6,
+                        -1.5 - Math.sin(j) * 0.7,
                       ]}
                       groupIndex={i}
                       onClick={() => setSelectedEvent(event)}

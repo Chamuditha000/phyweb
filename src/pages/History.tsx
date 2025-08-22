@@ -68,8 +68,9 @@ export const History: React.FC = () => {
         style={{
           textAlign: "center",
           marginBottom: 80,
-          fontSize: "2.5rem",
+          fontSize: "3.5rem",
           fontFamily: "Georgia, serif",
+          color: "black",
           position: "relative",
           zIndex: 10,
         }}
@@ -87,7 +88,7 @@ export const History: React.FC = () => {
           padding: "30px 40px",
           borderRadius: "12px",
           color: "black",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 1)",
           fontSize: "1.2rem",
           lineHeight: 1.8,
           position: "relative",

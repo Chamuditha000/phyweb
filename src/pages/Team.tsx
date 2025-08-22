@@ -15,7 +15,7 @@ function RotateCameraZ() {
 
   return null;
 }
-const imageScaleList = [0.9, 1.0, 1.0, 1.0]; // e.g., enlarge first row images
+const imageScaleList = [1.0, 1.0, 1.0, 1.0]; // e.g., enlarge first row images
 const members = [
   {
     name: "Prof. G D K Mahanama",
@@ -166,9 +166,9 @@ function FloatingCard({
 export const Team = () => {
   const layout = [2, 3, 4, 7]; // cards per row
 
-  const spacingXList = [10, 12, 14, 12]; // horizontal spacing per row
-  const rowZList = [0, -25, -55, -75]; // depth per row (Z)
-  const rowYList = [-3, -4, -1, 4]; // vertical height per row (Y)
+  const spacingXList = [10, 12, 14, 9]; // horizontal spacing per row
+  const rowZList = [-10, -10, -10, -10]; // depth per row (Z)
+  const rowYList = [-8, -3, 2, 8]; // vertical height per row (Y)
 
   const positions: [number, number, number][] = [];
   let idx = 0;
@@ -204,14 +204,14 @@ export const Team = () => {
         position: "relative",
       }}
     >
-      <Canvas camera={{ position: [0, 9, 55], fov: 20 }}>
+      <Canvas camera={{ position: [0, 9, 55], fov: 30 }}>
         <RotateCameraZ />
         <ambientLight intensity={0.5} />
         <pointLight position={[0, 20, 20]} intensity={1.2} />
         <OrbitControls
           enablePan={false}
           enableRotate={false}
-          enableZoom={true}
+          enableZoom={false}
           minDistance={20}
           maxDistance={80}
         />
