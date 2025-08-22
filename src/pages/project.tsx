@@ -266,7 +266,7 @@ const groupedEvents = Object.values(
     return acc;
   }, {} as Record<string, { month: string; events: Event[] }>)
 );
-
+const SPACING_X = 5;
 function EventCard({
   event,
   offset,
@@ -356,7 +356,7 @@ function EventBlock({
 function CameraScroll({ scroll }: { scroll: number }) {
   const { camera } = useThree();
   const { x } = useSpring({
-    x: scroll * 3,
+    x: scroll * SPACING_X,
     config: { mass: 1, tension: 220, friction: 130 },
   });
   useFrame(() => {
@@ -555,13 +555,13 @@ export const Projects = () => {
               <CameraScroll scroll={scroll} />
               {groupedEvents.map((group, i) => (
                 <group key={i}>
-                  <EventBlock position={[i * 5, 0, 2]} month={group.month} />
+                  <EventBlock position={[i * 3.6, 0, 2]} month={group.month} />
                   {group.events.map((event, j) => (
                     <EventCard
                       key={j}
                       event={event}
                       offset={[
-                        j * 2 - group.events.length * 0.6,
+                        j * 0.1 - group.events.length * 0.5,
                         -1.5 - Math.sin(j) * 0.7,
                       ]}
                       groupIndex={i}
