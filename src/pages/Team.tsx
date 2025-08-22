@@ -15,7 +15,7 @@ function RotateCameraZ() {
 
   return null;
 }
-const imageScaleList = [1.0, 1.0, 1.0, 1.0]; // e.g., enlarge first row images
+const imageScaleList = [1.0, 1.0, 1.0, 0.7]; // e.g., enlarge first row images
 const members = [
   {
     name: "Prof. G D K Mahanama",
