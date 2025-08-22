@@ -95,7 +95,7 @@ const members = [
   {
     name: "Mr.Chamuditha Dissanayake",
     role: "Committee Member",
-    image: process.env.PUBLIC_URL + "/img/14.jpg",
+    image: process.env.PUBLIC_URL + "/img/20.jpg",
   },
 ];
 
