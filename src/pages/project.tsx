@@ -237,8 +237,8 @@ We extend our heartfelt thanks to all the participants for their enthusiasm and 
   },
 
   {
-    month: "Jul 2025",
-    title: "The Horizon Magazine",
+    month: "Aug 2025",
+    title: "The Horizon Magazine - 2025",
     description: `
 
 The Horizon Magazine Revival
