@@ -238,10 +238,10 @@ We extend our heartfelt thanks to all the participants for their enthusiasm and 
 
   {
     month: "Aug 2025",
-    title: "The Horizon Magazine - 2025",
+    title: "The Horizon Magazine 2025",
     description: `
 
-The Horizon Magazine Revival
+The Horizon Magazine 2025
 
 
 We are thrilled to announce the revival of The Horizon Magazine, our very own Physics Society magazine, making its comeback after a 28-year hiatus since its last publication in 1996. This historic return allows both students and faculty members to contribute their articles, artistic works, and other creative content, offering a platform to share knowledge, ideas, and artistic expression within the Physics Society.
