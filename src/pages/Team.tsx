@@ -166,7 +166,7 @@ export const Team: React.FC = () => {
                 </div>
 
                 {/* Caption */}
-                <div style={{ padding: "8px 10px" }}>
+                <div style={{ padding: "8px 10px", textAlign: "center" }}>
                   <div
                     style={{
                       fontWeight: 600,
