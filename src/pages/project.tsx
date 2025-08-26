@@ -601,7 +601,7 @@ export const Projects = () => {
                       event={event}
                       offset={[
                         j * 0.1 - group.events.length * 0.5,
-                        -1.5 - Math.sin(j) * 0.7,
+                        -1.5 - j * 1.3,
                       ]}
                       groupIndex={i}
                       onClick={() => setSelectedEvent(event)}

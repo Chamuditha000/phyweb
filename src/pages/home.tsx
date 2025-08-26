@@ -38,7 +38,7 @@ export const GlobalHomeButton: React.FC = () => {
         left: "50%",
         right: "50%",
         transform: "translateX(-50%)",
-        zIndex: 1000,
+        zIndex: 1000000000,
       }}
     >
       <button

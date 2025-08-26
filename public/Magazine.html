@@ -26,19 +26,7 @@
       height: auto;
       margin: 0 5px;
       box-shadow: 0 0 10px #444;
-    }
-    .nav-buttons {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-    }
-    .nav-buttons button {
-      padding: 10px 20px;
-      font-size: 1rem;
-      margin: 0 10px;
-      cursor: pointer;
+      background: #000;
     }
   </style>
 </head>
@@ -48,71 +36,72 @@
     <canvas id="rightPage"></canvas>
   </div>
 
-  <div class="nav-buttons">
-    <button id="prevBtn">⏪ Previous</button>
-    <button id="nextBtn">Next ⏩</button>
-  </div>
-
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     let pdfDoc = null;
     let currentPage = 1;
 
     const leftCanvas = document.getElementById("leftPage");
     const rightCanvas = document.getElementById("rightPage");
-const renderPage = async (canvas, pageNum) => {
-  if (pageNum > pdfDoc.numPages) {
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    return;
-  }
 
-  const page = await pdfDoc.getPage(pageNum);
-  const desiredScale = 1; // 🔍 Increase this if needed (2.5–3.0 is very crisp)
-  const viewport = page.getViewport({ scale: desiredScale });
+    async function renderPage(canvas, pageNum) {
+      if (pageNum > pdfDoc.numPages) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
 
-  // Match canvas size to PDF page size × devicePixelRatio
-  const dpi = window.devicePixelRatio || 1;
-  canvas.width = viewport.width * dpi;
-  canvas.height = viewport.height * dpi;
+      const page = await pdfDoc.getPage(pageNum);
+      const desiredScale = 1.2; // adjust scale as needed
+      const viewport = page.getViewport({ scale: desiredScale });
 
-  canvas.style.width = viewport.width + 'px';
-  canvas.style.height = viewport.height + 'px';
+      const dpi = window.devicePixelRatio || 1;
+      canvas.width = viewport.width * dpi;
+      canvas.height = viewport.height * dpi;
 
-  const context = canvas.getContext("2d");
-  context.setTransform(dpi, 0, 0, dpi, 0, 0); // Apply scaling to match pixel ratio
+      canvas.style.width = viewport.width + "px";
+      canvas.style.height = viewport.height + "px";
 
-  await page.render({
-    canvasContext: context,
-    viewport: viewport
-  }).promise;
-};
+      const context = canvas.getContext("2d");
+      context.setTransform(dpi, 0, 0, dpi, 0, 0);
 
-    const renderCurrentSpread = async () => {
+      await page.render({ canvasContext: context, viewport }).promise;
+    }
+
+    async function renderCurrentSpread() {
       await renderPage(leftCanvas, currentPage);
       await renderPage(rightCanvas, currentPage + 1);
-    };
+    }
 
-    document.getElementById("nextBtn").addEventListener("click", async () => {
+    function goNext() {
       if (currentPage + 2 <= pdfDoc.numPages) {
         currentPage += 2;
-        await renderCurrentSpread();
+        renderCurrentSpread();
       }
-    });
+    }
 
-    document.getElementById("prevBtn").addEventListener("click", async () => {
+    function goPrev() {
       if (currentPage - 2 >= 1) {
         currentPage -= 2;
-        await renderCurrentSpread();
+        renderCurrentSpread();
       }
-    });
+    }
 
     window.onload = async () => {
-      const url = 'bb.pdf'; // Must be in same folder
+      const url = "bb.pdf"; // PDF must be in same folder
       pdfDoc = await pdfjsLib.getDocument(url).promise;
       await renderCurrentSpread();
     };
+
+    // ✅ Listen for messages from parent React app
+    window.addEventListener("message", (e) => {
+      const msg = e.data;
+      if (!msg) return;
+      if (msg === "next" || (msg.type === "flip" && msg.dir === "next")) goNext();
+      if (msg === "prev" || (msg.type === "flip" && msg.dir === "prev")) goPrev();
+    });
   </script>
 </body>
 </html>
