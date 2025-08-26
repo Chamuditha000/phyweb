@@ -451,17 +451,50 @@ export const Projects = () => {
             }}
           >
             <button
-              onClick={() => setSelectedEvent(null)}
+              onClick={() => {
+                setSelectedEvent(null);
+                setScroll(0); // resets spring input
+                const el = document.getElementById("timeline-scroll");
+                if (el) el.scrollLeft = 0; // reset container
+
+                // 🔄 Force a full page reload
+                window.location.reload();
+              }}
               style={{
                 marginBottom: "20px",
-                padding: "10px 20px",
-                background: "#00ffff",
-                color: "#001a33",
+                padding: "12px 28px",
+                background: "transparent",
+                color: "#00ffff",
                 fontWeight: "bold",
-                border: "none",
+                fontSize: "1rem",
+                border: "2px solid #00ffff",
                 borderRadius: "8px",
                 cursor: "pointer",
-                boxShadow: "0 0 8px #00ffff88",
+                fontFamily: "Orbitron, sans-serif",
+                letterSpacing: "1px",
+                textShadow: "0 0 6px #00ffffcc",
+                boxShadow: "0 0 12px #00ffff66",
+                transition: "all 0.25s ease",
+              }}
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "#00ffff22";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                  "0 0 20px #00ffffcc, 0 0 40px #00ffff88";
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background =
+                  "transparent";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                  "0 0 12px #00ffff66";
+              }}
+              onMouseDown={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  "scale(0.96)";
+              }}
+              onMouseUp={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform =
+                  "scale(1)";
               }}
             >
               ← Back to Timeline
@@ -547,7 +580,13 @@ export const Projects = () => {
             }}
           >
             <Canvas
-              style={{ position: "absolute", top: 0, left: 0 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+              }}
               camera={{ position: [0, 4, 10], fov: 45 }}
             >
               <ambientLight intensity={0.4} />

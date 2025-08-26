@@ -50,8 +50,8 @@ export const History: React.FC = () => {
               position: "absolute",
               top,
               [isLeft ? "left" : "right"]: `${40 + offset}px`,
-              maxWidth: "500px",
-              maxHeight: "300px",
+              maxWidth: "300px",
+              maxHeight: "200px",
               width: "auto",
               height: "auto",
               transform: `rotate(${rotation}deg)`,
@@ -67,7 +67,9 @@ export const History: React.FC = () => {
       <h1
         style={{
           textAlign: "center",
-          marginBottom: 80,
+          marginBottom: 20,
+          marginLeft: 350,
+          marginRight: 350,
           fontSize: "3.5rem",
           fontFamily: "Georgia, serif",
           color: "black",
@@ -75,7 +77,23 @@ export const History: React.FC = () => {
           zIndex: 10,
         }}
       >
-        Our Story: The Journey of the Physics Society
+        Our Story
+      </h1>
+
+      <h1
+        style={{
+          textAlign: "center",
+          marginBottom: 20,
+          marginLeft: 350,
+          marginRight: 350,
+          fontSize: "3.5rem",
+          fontFamily: "Georgia, serif",
+          color: "black",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
+        The Journey of the Physics Society
       </h1>
 
       {/* 📜 Text block on top */}
