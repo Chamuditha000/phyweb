@@ -7,7 +7,6 @@ import { FloatingEquations } from "./FloatingEquations";
 import { SpinningTop } from "./spinningtop";
 import { Gball } from "./gball";
 import { LuminousBeams } from "./luminousbeam";
-
 import { PlaneTakeoffScene } from "./plane";
 import { GlassyText } from "./glassyt";
 
@@ -16,89 +15,40 @@ const iframeSrc = process.env.PUBLIC_URL + "/Magazine.html";
 
 function EmbeddedFlipbook() {
   return (
-    <>
-      {/* 3D mesh with iframe flipbook */}
-      <mesh position={[0, 0, -1]} castShadow>
-        <boxGeometry args={[9.2, 6.7, 0.05]} />
-        <meshStandardMaterial color="#111" />
-        <Html
-          transform
-          position={[0, 0, 0.051]}
-          distanceFactor={2.5}
-          occlude
+    <mesh position={[0, 2.1, -2.7]} castShadow>
+      <boxGeometry args={[9.2, 6.7, 0.05]} />
+      <meshStandardMaterial color="#111" />
+      <Html
+        transform
+        position={[0, 0, 0.051]}
+        distanceFactor={2.5}
+        occlude
+        style={{
+          width: "1440px",
+          height: "1080px",
+          margin: 0,
+          padding: 10,
+          borderRadius: "0px",
+          boxShadow: "none",
+        }}
+      >
+        <iframe
+          src={iframeSrc}
+          title="Magazine Flipbook"
           style={{
             width: "1440px",
             height: "1080px",
             margin: 0,
-            padding: 10,
-            borderRadius: "0px",
-            boxShadow: "none",
+            padding: 0,
+            borderRadius: "4px",
+            boxShadow: "0 0 50px rgba(0, 255, 255, 0.3)",
+            overflow: "hidden",
+            perspective: "1500px",
+            transformStyle: "preserve-3d",
           }}
-        >
-          <iframe
-            src={iframeSrc}
-            title="Magazine Flipbook"
-            style={{
-              width: "1440px",
-              height: "1080px",
-              margin: 0,
-              padding: 0,
-              borderRadius: "4px",
-              boxShadow: "0 0 50px rgba(0, 255, 255, 0.3)",
-              overflow: "hidden",
-              perspective: "1500px",
-              transformStyle: "preserve-3d",
-            }}
-          />
-        </Html>
-      </mesh>
-
-      {/* 🔽 Navigation Buttons pinned at bottom */}
-      <Html fullscreen>
-        <div
-          style={{
-            position: "absolute",
-            bottom: "10px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 9999,
-          }}
-        >
-          <button
-            style={{
-              padding: "10px 20px",
-              margin: "0 10px",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              // call iframe's prevPage function
-              document
-                .querySelector("iframe")
-                ?.contentWindow?.postMessage("prev", "*");
-            }}
-          >
-            ⏪ Previous
-          </button>
-          <button
-            style={{
-              padding: "10px 20px",
-              margin: "0 10px",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-            onClick={() => {
-              // call iframe's nextPage function
-              document
-                .querySelector("iframe")
-                ?.contentWindow?.postMessage("next", "*");
-            }}
-          >
-            Next ⏩
-          </button>
-        </div>
+        />
       </Html>
-    </>
+    </mesh>
   );
 }
 function FloorPanels() {
@@ -219,58 +169,47 @@ export function Magazine() {
       )}
 
       {!showIntro && (
-        <div
-          style={{
-            width: "100vw",
-            height: "100vh",
-            overflowY: "hidden", // ✅ enables vertical scrolling
-          }}
-        >
-          <div style={{ height: "100vh" }}>
-            {" "}
-            {/* ✅ inner content is taller */}
-            <Canvas camera={{ position: [0, -0.5, 20], fov: 50 }}>
-              <ambientLight intensity={0.25} />
-              <spotLight
-                position={[10, 15, 10]}
-                angle={0.3}
-                penumbra={1}
-                castShadow
-              />
-              <ambientLight intensity={1.5} />
-              <directionalLight position={[5, 5, 5]} intensity={2} />
-              <ambientLight intensity={0.1} color="#ffcc33" />
-              <pointLight
-                position={[-6, 4, 0]}
-                intensity={60.5}
-                color="#ffcc33"
-                distance={20}
-                decay={1.5}
-              />
-              <FloatingEquations />
-              <SpinningTop />
-              <Gball />
-              <FloorPanels />
-              <PlaneTakeoffScene />
-              <EmbeddedFlipbook />
-              <GlassyText />
-              <LuminousBeams
-                height={19}
-                baseY={-10.2}
-                color="#000066"
-                particleColor="white"
-              />
-              <OrbitControls
-                enablePan={false}
-                enableRotate={false}
-                enableZoom={false}
-                minDistance={2}
-                maxDistance={8}
-              />
-              <FloorPanels />
-            </Canvas>
-          </div>
-        </div>
+        <Canvas camera={{ position: [0, 0, 30], fov: 50 }}>
+          <ambientLight intensity={0.25} />
+          <spotLight
+            position={[10, 15, 10]}
+            angle={0.3}
+            penumbra={1}
+            castShadow
+          />
+          <ambientLight intensity={1.5} />
+          <directionalLight position={[5, 5, 5]} intensity={2} />
+
+          <ambientLight intensity={0.1} color="#ffcc33" />
+          <pointLight
+            position={[-6, 4, 0]}
+            intensity={60.5}
+            color="#ffcc33"
+            distance={20}
+            decay={1.5}
+          />
+          <FloatingEquations />
+          <SpinningTop />
+          <Gball />
+          <FloorPanels />
+          <PlaneTakeoffScene />
+          <EmbeddedFlipbook />
+          <GlassyText />
+          <LuminousBeams
+            height={19}
+            baseY={-10.2}
+            color="#000066"
+            particleColor="white"
+          />
+          <OrbitControls
+            enablePan={true}
+            enableRotate={true}
+            enableZoom={true}
+            minDistance={7}
+            maxDistance={13}
+          />
+          <FloorPanels />
+        </Canvas>
       )}
     </div>
   );
