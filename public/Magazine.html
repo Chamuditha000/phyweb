@@ -22,10 +22,11 @@
       position: relative;
     }
     canvas {
-      width: 45vw;
+      width: 45vw;          /* responsive size handled by CSS */
       height: auto;
       margin: 0 5px;
       box-shadow: 0 0 10px #444;
+      background: #000;
     }
     .nav-buttons {
       position: absolute;
@@ -54,40 +55,36 @@
   </div>
 
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
     let pdfDoc = null;
     let currentPage = 1;
 
     const leftCanvas = document.getElementById("leftPage");
     const rightCanvas = document.getElementById("rightPage");
-const renderPage = async (canvas, pageNum) => {
-  if (pageNum > pdfDoc.numPages) {
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    return;
-  }
 
-  const page = await pdfDoc.getPage(pageNum);
-  const desiredScale = 1; // 🔍 Increase this if needed (2.5–3.0 is very crisp)
-  const viewport = page.getViewport({ scale: desiredScale });
+    const renderPage = async (canvas, pageNum) => {
+      if (pageNum > pdfDoc.numPages) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
 
-  // Match canvas size to PDF page size × devicePixelRatio
-  const dpi = window.devicePixelRatio || 1;
-  canvas.width = viewport.width * dpi;
-  canvas.height = viewport.height * dpi;
+      const page = await pdfDoc.getPage(pageNum);
+      const desiredScale = 1.5; // tweak for sharpness
+      const viewport = page.getViewport({ scale: desiredScale });
 
-  canvas.style.width = viewport.width + 'px';
-  canvas.style.height = viewport.height + 'px';
+      // Match canvas *buffer* to viewport * device pixel ratio; let CSS control layout
+      const dpi = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(viewport.width * dpi);
+      canvas.height = Math.floor(viewport.height * dpi);
 
-  const context = canvas.getContext("2d");
-  context.setTransform(dpi, 0, 0, dpi, 0, 0); // Apply scaling to match pixel ratio
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
 
-  await page.render({
-    canvasContext: context,
-    viewport: viewport
-  }).promise;
-};
+      await page.render({ canvasContext: ctx, viewport }).promise;
+    };
 
     const renderCurrentSpread = async () => {
       await renderPage(leftCanvas, currentPage);
@@ -108,62 +105,65 @@ const renderPage = async (canvas, pageNum) => {
       }
     });
 
-window.onload = async () => {
-  try {
-    const names = [
-      'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
-      'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf'
-    ];
-
-    // Build URLs relative to where index.html is served (works on Live Server + Vercel)
-    const urls = names.map(n => new URL(`pdfs/${n}`, document.baseURI).toString());
-
-    // Load all PDFs
-    const loaded = [];
-    await Promise.all(urls.map(async (url) => {
+    window.onload = async () => {
       try {
-        const pdf = await pdfjsLib.getDocument({ url }).promise;
-        console.log(`✅ Loaded ${url}`);
-        loaded.push({ pdf });
-      } catch (e) {
-        console.error(`❌ Failed to load ${url}`, e);
-      }
-    }));
+        const names = [
+          'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
+          'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf'
+        ];
 
-    if (loaded.length === 0) {
-      alert('No PDFs loaded. Open one directly in the browser (e.g., /pdfs/part01.pdf) to confirm path.');
-      return;
-    }
+        // ✅ Single, absolute mapping; remove the earlier duplicate
+       // Build URLs that work in Live Server (any subfolder) AND on Vercel
+const urls = names.map(n => new URL(`pdfs/${n}`, document.baseURI).toString());
 
-    // Build virtual index and adapter pdfDoc so your existing render works
-    let startAt = 1;
-    const index = [];
-    for (const { pdf } of loaded) {
-      const numPages = pdf.numPages;
-      index.push({ startAt, endAt: startAt + numPages - 1, pdf });
-      startAt += numPages;
-    }
-    const total = startAt - 1;
+        // Load all PDFs
+        const loaded = [];
+        await Promise.all(
+          urls.map(async (url) => {
+            try {
+              const pdf = await pdfjsLib.getDocument({ url }).promise;
+              console.log(`✅ Loaded ${url}`);
+              loaded.push({ pdf });
+            } catch (e) {
+              console.error(`❌ Failed to load ${url}`, e);
+            }
+          })
+        );
 
-    // Virtual pdfDoc
-    pdfDoc = {
-      numPages: total,
-      getPage: async (virtualPage) => {
-        for (const e of index) {
-          if (virtualPage >= e.startAt && virtualPage <= e.endAt) {
-            const pageNum = virtualPage - e.startAt + 1;
-            return e.pdf.getPage(pageNum);
-          }
+        if (loaded.length === 0) {
+          alert('No PDFs loaded. Open /pdfs/part01.pdf directly to confirm the path and deployment.');
+          return;
         }
-        throw new Error(`Virtual page ${virtualPage} out of range 1..${total}`);
+
+        // Build virtual index
+        let startAt = 1;
+        const index = [];
+        for (const { pdf } of loaded) {
+          const numPages = pdf.numPages;
+          index.push({ startAt, endAt: startAt + numPages - 1, pdf });
+          startAt += numPages;
+        }
+        const total = startAt - 1;
+
+        // Virtual pdfDoc shim
+        pdfDoc = {
+          numPages: total,
+          getPage: async (virtualPage) => {
+            for (const e of index) {
+              if (virtualPage >= e.startAt && virtualPage <= e.endAt) {
+                const pageNum = virtualPage - e.startAt + 1;
+                return e.pdf.getPage(pageNum);
+              }
+            }
+            throw new Error(`Virtual page ${virtualPage} out of range 1..${total}`);
+          }
+        };
+
+        await renderCurrentSpread();
+      } catch (err) {
+        console.error('❌ Unexpected error in onload', err);
       }
     };
-
-    await renderCurrentSpread();
-  } catch (err) {
-    console.error('❌ Unexpected error in onload', err);
-  }
-};
   </script>
 </body>
 </html>
