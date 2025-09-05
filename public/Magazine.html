@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Flipbook</title>
+  <title>PDF Flipbook (Lazy)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     html, body {
@@ -56,114 +56,136 @@
 
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-    let pdfDoc = null;
+    // List your split parts in order. Files should live at /public/pdfs/partXX.pdf
+    const names = [
+      'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
+      'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf'
+    ];
+    const urls = names.map(n => new URL(`pdfs/${n}`, document.baseURI).toString());
+
+    // Lazy cache: partIndex -> { pdf, numPages }
+    const cache = new Map();
+    // Running totals we’ve already learned: partIndex -> endAt (virtual page)
+    const endAt = new Map();  // e.g., endAt.get(0) = last virtual page inside part 0
+
     let currentPage = 1;
 
-    const leftCanvas = document.getElementById("leftPage");
+    const leftCanvas  = document.getElementById("leftPage");
     const rightCanvas = document.getElementById("rightPage");
 
-    const renderPage = async (canvas, pageNum) => {
-      if (pageNum > pdfDoc.numPages) {
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
+    async function loadPart(partIndex) {
+      if (cache.has(partIndex)) return cache.get(partIndex);
+
+      const url = urls[partIndex];
+      // Open this part (only when needed)
+      const pdf = await pdfjsLib.getDocument({ url }).promise;
+      const numPages = pdf.numPages;
+      const entry = { pdf, numPages };
+      cache.set(partIndex, entry);
+
+      // Update endAt (cumulative virtual-page limit) for this and all following parts
+      const prevEnd = partIndex === 0 ? 0 : endAt.get(partIndex - 1) ?? 0;
+      endAt.set(partIndex, prevEnd + numPages);
+      return entry;
+    }
+
+    // Ensure we know the cumulative endAt up to (and including) a given part
+    async function ensureEndAt(partIndex) {
+      // Walk from 0..partIndex and load any missing parts just enough to get numPages
+      for (let i = 0; i <= partIndex; i++) {
+        if (!endAt.has(i)) {
+          await loadPart(i);
+        }
+      }
+    }
+
+    // Resolve a virtual page number to { pdf, pageNum, partIndex }
+    async function resolveVirtualPage(virtualPage) {
+      if (virtualPage < 1) throw new Error("virtualPage < 1");
+
+      // Step through parts in order until the end covers this virtual page
+      for (let i = 0; i < urls.length; i++) {
+        await ensureEndAt(i);
+        const last = endAt.get(i);
+        if (virtualPage <= last) {
+          const { pdf } = cache.get(i);
+          const startAt = (i === 0 ? 1 : (endAt.get(i - 1) + 1));
+          const pageNum = virtualPage - startAt + 1;
+          return { pdf, pageNum, partIndex: i };
+        }
       }
 
-      const page = await pdfDoc.getPage(pageNum);
-      const desiredScale = 1.5; // tweak for sharpness
-      const viewport = page.getViewport({ scale: desiredScale });
+      // If we got here, virtualPage is beyond the whole book
+      throw new RangeError("Virtual page out of range");
+    }
 
-      // Match canvas *buffer* to viewport * device pixel ratio; let CSS control layout
-      const dpi = window.devicePixelRatio || 1;
-      canvas.width = Math.floor(viewport.width * dpi);
-      canvas.height = Math.floor(viewport.height * dpi);
+    async function renderToCanvas(canvas, virtualPage) {
+      try {
+        const { pdf, pageNum } = await resolveVirtualPage(virtualPage);
+        const page = await pdf.getPage(pageNum);
 
-      const ctx = canvas.getContext("2d");
-      ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
+        const desiredScale = 1.5;
+        const viewport = page.getViewport({ scale: desiredScale });
 
-      await page.render({ canvasContext: ctx, viewport }).promise;
-    };
+        const dpi = window.devicePixelRatio || 1;
+        canvas.width  = Math.floor(viewport.width  * dpi);
+        canvas.height = Math.floor(viewport.height * dpi);
 
-    const renderCurrentSpread = async () => {
-      await renderPage(leftCanvas, currentPage);
-      await renderPage(rightCanvas, currentPage + 1);
-    };
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+      } catch (e) {
+        // If the page is out of range, clear the canvas
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    async function renderSpread() {
+      // Left = currentPage, Right = currentPage + 1
+      await renderToCanvas(leftCanvas, currentPage);
+      await renderToCanvas(rightCanvas, currentPage + 1);
+    }
 
     document.getElementById("nextBtn").addEventListener("click", async () => {
-      if (currentPage + 2 <= pdfDoc.numPages) {
+      // Try to resolve the *next* left page. If it exists, advance.
+      try {
+        await resolveVirtualPage(currentPage + 2);
         currentPage += 2;
-        await renderCurrentSpread();
+        await renderSpread();
+      } catch {
+        // at end — do nothing
       }
     });
 
     document.getElementById("prevBtn").addEventListener("click", async () => {
       if (currentPage - 2 >= 1) {
         currentPage -= 2;
-        await renderCurrentSpread();
+        await renderSpread();
       }
     });
 
-    window.onload = async () => {
-      try {
-        const names = [
-          'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
-          'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf'
-        ];
-
-        // ✅ Single, absolute mapping; remove the earlier duplicate
-       // Build URLs that work in Live Server (any subfolder) AND on Vercel
-const urls = names.map(n => new URL(`pdfs/${n}`, document.baseURI).toString());
-
-        // Load all PDFs
-        const loaded = [];
-        await Promise.all(
-          urls.map(async (url) => {
-            try {
-              const pdf = await pdfjsLib.getDocument({ url }).promise;
-              console.log(`✅ Loaded ${url}`);
-              loaded.push({ pdf });
-            } catch (e) {
-              console.error(`❌ Failed to load ${url}`, e);
-            }
-          })
-        );
-
-        if (loaded.length === 0) {
-          alert('No PDFs loaded. Open /pdfs/part01.pdf directly to confirm the path and deployment.');
-          return;
-        }
-
-        // Build virtual index
-        let startAt = 1;
-        const index = [];
-        for (const { pdf } of loaded) {
-          const numPages = pdf.numPages;
-          index.push({ startAt, endAt: startAt + numPages - 1, pdf });
-          startAt += numPages;
-        }
-        const total = startAt - 1;
-
-        // Virtual pdfDoc shim
-        pdfDoc = {
-          numPages: total,
-          getPage: async (virtualPage) => {
-            for (const e of index) {
-              if (virtualPage >= e.startAt && virtualPage <= e.endAt) {
-                const pageNum = virtualPage - e.startAt + 1;
-                return e.pdf.getPage(pageNum);
-              }
-            }
-            throw new Error(`Virtual page ${virtualPage} out of range 1..${total}`);
-          }
-        };
-
-        await renderCurrentSpread();
-      } catch (err) {
-        console.error('❌ Unexpected error in onload', err);
+    // Keyboard navigation (← / →)
+    window.addEventListener("keydown", async (e) => {
+      if (e.key === "ArrowRight") {
+        document.getElementById("nextBtn").click();
+      } else if (e.key === "ArrowLeft") {
+        document.getElementById("prevBtn").click();
       }
-    };
+    });
+
+    // Initial render
+    (async () => {
+      try {
+        await renderSpread();
+      } catch (err) {
+        console.error("Init error:", err);
+        alert('Could not render. Check that /public/pdfs/part01.pdf exists and is accessible.');
+      }
+    })();
   </script>
 </body>
 </html>
