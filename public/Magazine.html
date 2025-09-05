@@ -26,7 +26,19 @@
       height: auto;
       margin: 0 5px;
       box-shadow: 0 0 10px #444;
-      background: #000;
+    }
+    .nav-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+    .nav-buttons button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      margin: 0 10px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -36,72 +48,122 @@
     <canvas id="rightPage"></canvas>
   </div>
 
+  <div class="nav-buttons">
+    <button id="prevBtn">⏪ Previous</button>
+    <button id="nextBtn">Next ⏩</button>
+  </div>
+
   <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     let pdfDoc = null;
     let currentPage = 1;
 
     const leftCanvas = document.getElementById("leftPage");
     const rightCanvas = document.getElementById("rightPage");
+const renderPage = async (canvas, pageNum) => {
+  if (pageNum > pdfDoc.numPages) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
 
-    async function renderPage(canvas, pageNum) {
-      if (pageNum > pdfDoc.numPages) {
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-      }
+  const page = await pdfDoc.getPage(pageNum);
+  const desiredScale = 1; // 🔍 Increase this if needed (2.5–3.0 is very crisp)
+  const viewport = page.getViewport({ scale: desiredScale });
 
-      const page = await pdfDoc.getPage(pageNum);
-      const desiredScale = 1.2; // adjust scale as needed
-      const viewport = page.getViewport({ scale: desiredScale });
+  // Match canvas size to PDF page size × devicePixelRatio
+  const dpi = window.devicePixelRatio || 1;
+  canvas.width = viewport.width * dpi;
+  canvas.height = viewport.height * dpi;
 
-      const dpi = window.devicePixelRatio || 1;
-      canvas.width = viewport.width * dpi;
-      canvas.height = viewport.height * dpi;
+  canvas.style.width = viewport.width + 'px';
+  canvas.style.height = viewport.height + 'px';
 
-      canvas.style.width = viewport.width + "px";
-      canvas.style.height = viewport.height + "px";
+  const context = canvas.getContext("2d");
+  context.setTransform(dpi, 0, 0, dpi, 0, 0); // Apply scaling to match pixel ratio
 
-      const context = canvas.getContext("2d");
-      context.setTransform(dpi, 0, 0, dpi, 0, 0);
+  await page.render({
+    canvasContext: context,
+    viewport: viewport
+  }).promise;
+};
 
-      await page.render({ canvasContext: context, viewport }).promise;
-    }
-
-    async function renderCurrentSpread() {
+    const renderCurrentSpread = async () => {
       await renderPage(leftCanvas, currentPage);
       await renderPage(rightCanvas, currentPage + 1);
-    }
-
-    function goNext() {
-      if (currentPage + 2 <= pdfDoc.numPages) {
-        currentPage += 2;
-        renderCurrentSpread();
-      }
-    }
-
-    function goPrev() {
-      if (currentPage - 2 >= 1) {
-        currentPage -= 2;
-        renderCurrentSpread();
-      }
-    }
-
-    window.onload = async () => {
-      const url = "bb.pdf"; // PDF must be in same folder
-      pdfDoc = await pdfjsLib.getDocument(url).promise;
-      await renderCurrentSpread();
     };
 
-    // ✅ Listen for messages from parent React app
-    window.addEventListener("message", (e) => {
-      const msg = e.data;
-      if (!msg) return;
-      if (msg === "next" || (msg.type === "flip" && msg.dir === "next")) goNext();
-      if (msg === "prev" || (msg.type === "flip" && msg.dir === "prev")) goPrev();
+    document.getElementById("nextBtn").addEventListener("click", async () => {
+      if (currentPage + 2 <= pdfDoc.numPages) {
+        currentPage += 2;
+        await renderCurrentSpread();
+      }
     });
+
+    document.getElementById("prevBtn").addEventListener("click", async () => {
+      if (currentPage - 2 >= 1) {
+        currentPage -= 2;
+        await renderCurrentSpread();
+      }
+    });
+
+window.onload = async () => {
+  try {
+    const names = [
+      'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
+      'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf'
+    ];
+
+    // Build URLs relative to where index.html is served (works on Live Server + Vercel)
+    const urls = names.map(n => new URL(`pdfs/${n}`, document.baseURI).toString());
+
+    // Load all PDFs
+    const loaded = [];
+    await Promise.all(urls.map(async (url) => {
+      try {
+        const pdf = await pdfjsLib.getDocument({ url }).promise;
+        console.log(`✅ Loaded ${url}`);
+        loaded.push({ pdf });
+      } catch (e) {
+        console.error(`❌ Failed to load ${url}`, e);
+      }
+    }));
+
+    if (loaded.length === 0) {
+      alert('No PDFs loaded. Open one directly in the browser (e.g., /pdfs/part01.pdf) to confirm path.');
+      return;
+    }
+
+    // Build virtual index and adapter pdfDoc so your existing render works
+    let startAt = 1;
+    const index = [];
+    for (const { pdf } of loaded) {
+      const numPages = pdf.numPages;
+      index.push({ startAt, endAt: startAt + numPages - 1, pdf });
+      startAt += numPages;
+    }
+    const total = startAt - 1;
+
+    // Virtual pdfDoc
+    pdfDoc = {
+      numPages: total,
+      getPage: async (virtualPage) => {
+        for (const e of index) {
+          if (virtualPage >= e.startAt && virtualPage <= e.endAt) {
+            const pageNum = virtualPage - e.startAt + 1;
+            return e.pdf.getPage(pageNum);
+          }
+        }
+        throw new Error(`Virtual page ${virtualPage} out of range 1..${total}`);
+      }
+    };
+
+    await renderCurrentSpread();
+  } catch (err) {
+    console.error('❌ Unexpected error in onload', err);
+  }
+};
   </script>
 </body>
 </html>

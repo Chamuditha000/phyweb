@@ -169,47 +169,59 @@ export function Magazine() {
       )}
 
       {!showIntro && (
-        <Canvas camera={{ position: [0, 0, 30], fov: 50 }}>
-          <ambientLight intensity={0.25} />
-          <spotLight
-            position={[10, 15, 10]}
-            angle={0.3}
-            penumbra={1}
-            castShadow
-          />
-          <ambientLight intensity={1.5} />
-          <directionalLight position={[5, 5, 5]} intensity={2} />
-
-          <ambientLight intensity={0.1} color="#ffcc33" />
-          <pointLight
-            position={[-6, 4, 0]}
-            intensity={60.5}
-            color="#ffcc33"
-            distance={20}
-            decay={1.5}
-          />
-          <FloatingEquations />
-          <SpinningTop />
-          <Gball />
-          <FloorPanels />
-          <PlaneTakeoffScene />
-          <EmbeddedFlipbook />
-          <GlassyText />
-          <LuminousBeams
-            height={19}
-            baseY={-10.2}
-            color="#000066"
-            particleColor="white"
-          />
-          <OrbitControls
-            enablePan={true}
-            enableRotate={true}
-            enableZoom={true}
-            minDistance={7}
-            maxDistance={13}
-          />
-          <FloorPanels />
-        </Canvas>
+        <div
+          style={{
+            width: "100vw",
+            height: "100vh",
+            overflowY: "auto", // ✅ enables vertical scrolling
+            scrollBehavior: "smooth",
+          }}
+        >
+          <div style={{ height: "200vh" }}>
+            {" "}
+            {/* ✅ inner content is taller */}
+            <Canvas camera={{ position: [0, 0, 30], fov: 45 }}>
+              <ambientLight intensity={0.25} />
+              <spotLight
+                position={[10, 15, 10]}
+                angle={0.3}
+                penumbra={1}
+                castShadow
+              />
+              <ambientLight intensity={1.5} />
+              <directionalLight position={[5, 5, 5]} intensity={2} />
+              <ambientLight intensity={0.1} color="#ffcc33" />
+              <pointLight
+                position={[-6, 4, 0]}
+                intensity={60.5}
+                color="#ffcc33"
+                distance={20}
+                decay={1.5}
+              />
+              <FloatingEquations />
+              <SpinningTop />
+              <Gball />
+              <FloorPanels />
+              <PlaneTakeoffScene />
+              <EmbeddedFlipbook />
+              <GlassyText />
+              <LuminousBeams
+                height={19}
+                baseY={-10.2}
+                color="#000066"
+                particleColor="white"
+              />
+              <OrbitControls
+                enablePan={false}
+                enableRotate={false}
+                enableZoom={false}
+                minDistance={10}
+                maxDistance={15}
+              />
+              <FloorPanels />
+            </Canvas>
+          </div>
+        </div>
       )}
     </div>
   );
