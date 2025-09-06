@@ -149,40 +149,47 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     }
+// put these once near your other globals
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+let isBusy = false;
 
 async function renderSpread() {
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  prevBtn.disabled = true;
-  nextBtn.disabled = true;
-
-  // let browser repaint disabled state first
-  await new Promise(requestAnimationFrame);
-
   // Left = currentPage, Right = currentPage + 1
   await renderToCanvas(leftCanvas, currentPage);
   await renderToCanvas(rightCanvas, currentPage + 1);
-
-  prevBtn.disabled = false;
-  nextBtn.disabled = false;
 }
-    document.getElementById("nextBtn").addEventListener("click", async () => {
-      // Try to resolve the *next* left page. If it exists, advance.
-      try {
-        await resolveVirtualPage(currentPage + 2);
-        currentPage += 2;
-        await renderSpread();
-      } catch {
-        // at end — do nothing
-      }
-    });
 
-    document.getElementById("prevBtn").addEventListener("click", async () => {
-      if (currentPage - 2 >= 1) {
-        currentPage -= 2;
-        await renderSpread();
-      }
-    });
+nextBtn.addEventListener("click", async () => {
+  if (isBusy) return;
+  isBusy = true;
+  prevBtn.disabled = true; nextBtn.disabled = true;
+  await new Promise(requestAnimationFrame); // paint disabled state
+
+  try {
+    await resolveVirtualPage(currentPage + 2);
+    currentPage += 2;
+    await renderSpread();
+  } finally {
+    prevBtn.disabled = false; nextBtn.disabled = false;
+    isBusy = false;
+  }
+});
+
+prevBtn.addEventListener("click", async () => {
+  if (isBusy || currentPage - 2 < 1) return;
+  isBusy = true;
+  prevBtn.disabled = true; nextBtn.disabled = true;
+  await new Promise(requestAnimationFrame);
+
+  try {
+    currentPage -= 2;
+    await renderSpread();
+  } finally {
+    prevBtn.disabled = false; nextBtn.disabled = false;
+    isBusy = false;
+  }
+});
 
     // Keyboard navigation (← / →)
     window.addEventListener("keydown", async (e) => {
