@@ -12,7 +12,7 @@ import { GlassyText } from "./glassyt";
 
 const iframeSrc = process.env.PUBLIC_URL + "/Magazine.html";
 // 🧱 Floor with emissive glow
-
+<RotateToLandscape maxDeviceWidth={512} />;
 function EmbeddedFlipbook() {
   return (
     <mesh position={[0, 2.1, -2.7]} castShadow>
@@ -205,7 +205,7 @@ export function Magazine() {
               <FloorPanels />
               <PlaneTakeoffScene />
               <EmbeddedFlipbook />
-              <RotateToLandscape maxDeviceWidth={1024} />
+
               <GlassyText />
               <LuminousBeams
                 height={19}
