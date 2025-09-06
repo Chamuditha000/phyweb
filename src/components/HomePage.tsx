@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { ProfileBadge } from "../pages/profilebadge";
 import { useState, useEffect } from "react";
 import { FloatingChatBot } from "../pages/floatingbot";
+import RotateToLandscape from "../pages/RotateToLandscape";
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -69,6 +70,7 @@ export const HomePage = () => {
         />
       </Canvas>
       <FloatingChatBot />
+      <RotateToLandscape maxDeviceWidth={1024} />
       {/* Top Right Buttons */}
       <div
         style={{

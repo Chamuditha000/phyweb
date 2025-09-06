@@ -4,6 +4,7 @@ import { Html, Box } from "@react-three/drei";
 import * as THREE from "three";
 import { a, useSpring } from "@react-spring/three";
 import { FloatingChatBot } from "../pages/floatingbot";
+import RotateToLandscape from "./RotateToLandscape";
 
 interface Event {
   month: string;
@@ -591,6 +592,7 @@ export const Projects = () => {
             >
               <ambientLight intensity={0.4} />
               <pointLight position={[10, 20, 10]} intensity={1.5} />
+              <RotateToLandscape maxDeviceWidth={1024} />
               <CameraScroll scroll={scroll} />
               {groupedEvents.map((group, i) => (
                 <group key={i}>

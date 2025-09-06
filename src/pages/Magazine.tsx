@@ -2,7 +2,7 @@ import { Canvas, useLoader } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import { useState } from "react";
 import * as THREE from "three";
-
+import RotateToLandscape from "./RotateToLandscape";
 import { FloatingEquations } from "./FloatingEquations";
 import { SpinningTop } from "./spinningtop";
 import { Gball } from "./gball";
@@ -74,6 +74,7 @@ function FloorPanels() {
           receiveShadow
         >
           <planeGeometry args={[65, 100]} />
+
           <meshStandardMaterial
             map={texture}
             emissiveMap={texture}
@@ -204,6 +205,7 @@ export function Magazine() {
               <FloorPanels />
               <PlaneTakeoffScene />
               <EmbeddedFlipbook />
+              <RotateToLandscape maxDeviceWidth={1024} />
               <GlassyText />
               <LuminousBeams
                 height={19}
