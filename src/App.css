@@ -1,3 +1,75 @@
+
+/* Base: stop sideways scroll and use device height correctly */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
+
+/* Use 100dvh so iOS browser bars don't squash your layout */
+.fullscreen, .viewport {
+  width: 100%;
+  height: 100dvh;        /* modern mobile units */
+}
+
+/* Images/canvases/iframes scale down on phones */
+img, canvas, video, iframe { max-width: 100%; height: auto; display: block; }
+
+/* Container that centers content and adds sensible gutter on mobile */
+.container {
+  width: min(100%, 1200px);
+  margin-inline: auto;
+  padding-inline: clamp(12px, 4vw, 28px);
+}
+
+/* Grid that collapses to single column on phones */
+.main-grid {
+  display: grid; 
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .main-grid { grid-template-columns: 1.2fr 0.8fr; }
+}
+
+/* Navigation buttons (Prev/Next) – fixed, big touch targets, safe-area aware */
+.nav-buttons {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display: flex; gap: 12px;
+  z-index: 1000;
+}
+.nav-buttons button {
+  min-width: 44px; min-height: 44px;       /* finger-friendly */
+  padding: 10px 16px; font: inherit;
+}
+
+/* If a transformed parent was breaking click alignment, ensure buttons aren't inside it */
+.nav-buttons { pointer-events: auto; }
+.r3f-layer, .three-wrapper { transform: none !important; } /* keep fixed elements accurate */
+
+/* Flipbook/Canvas region – prevent it from forcing page wider than phone */
+.book, .flipbook-wrap {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  position: relative;
+}
+
+/* Make iframes responsive (if you embed Magazine.html) */
+.responsive-frame {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;  /* or 3/4 for A4 portrait */
+  border: 0;
+}
+
+/* Better touch behavior for dragging, swiping */
+html, body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
 .App {
   text-align: center;
 }
