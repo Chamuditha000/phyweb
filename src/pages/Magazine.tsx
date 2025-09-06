@@ -173,11 +173,10 @@ export function Magazine() {
           style={{
             width: "100vw",
             height: "100vh",
-            overflowY: "auto", // ✅ enables vertical scrolling
-            scrollBehavior: "smooth",
+            overflowY: "hidden", // ✅ enables vertical scrolling
           }}
         >
-          <div style={{ height: "200vh" }}>
+          <div style={{ height: "150vh" }}>
             {" "}
             {/* ✅ inner content is taller */}
             <Canvas camera={{ position: [0, 0, 30], fov: 45 }}>

@@ -33,7 +33,7 @@
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 10;
+      z-index: 1000;
     }
     .nav-buttons button {
       padding: 10px 20px;
@@ -151,9 +151,15 @@
     }
 
     async function renderSpread() {
+
+        document.getElementById("prevBtn").disabled = true;
+      document.getElementById("nextBtn").disabled = true;
       // Left = currentPage, Right = currentPage + 1
       await renderToCanvas(leftCanvas, currentPage);
       await renderToCanvas(rightCanvas, currentPage + 1);
+
+        document.getElementById("prevBtn").disabled = false;
+      document.getElementById("nextBtn").disabled = false;
     }
 
     document.getElementById("nextBtn").addEventListener("click", async () => {
