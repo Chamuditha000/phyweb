@@ -80,7 +80,7 @@ export default function RotateToLandscape({
     justifyContent: "center",
     background: "#000",
     color: "#fff",
-    zIndex: 9999,
+    zIndex: 1000000000,
     padding:
       "calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))",
   };
