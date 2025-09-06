@@ -150,18 +150,22 @@
       }
     }
 
-    async function renderSpread() {
+async function renderSpread() {
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  prevBtn.disabled = true;
+  nextBtn.disabled = true;
 
-        document.getElementById("prevBtn").disabled = true;
-      document.getElementById("nextBtn").disabled = true;
-      // Left = currentPage, Right = currentPage + 1
-      await renderToCanvas(leftCanvas, currentPage);
-      await renderToCanvas(rightCanvas, currentPage + 1);
+  // let browser repaint disabled state first
+  await new Promise(requestAnimationFrame);
 
-        document.getElementById("prevBtn").disabled = false;
-      document.getElementById("nextBtn").disabled = false;
-    }
+  // Left = currentPage, Right = currentPage + 1
+  await renderToCanvas(leftCanvas, currentPage);
+  await renderToCanvas(rightCanvas, currentPage + 1);
 
+  prevBtn.disabled = false;
+  nextBtn.disabled = false;
+}
     document.getElementById("nextBtn").addEventListener("click", async () => {
       // Try to resolve the *next* left page. If it exists, advance.
       try {
