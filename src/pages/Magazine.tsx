@@ -174,7 +174,7 @@ export function Magazine() {
             width: "100vw",
             height: "100vh",
             overflowY: "hidden",
-            overflowX: "auto", // ✅ enables vertical scrolling
+            overflowX: "auto", // ✅ enables h scrolling
           }}
         >
           <div style={{ height: "150vh" }}>
@@ -214,7 +214,7 @@ export function Magazine() {
               <OrbitControls
                 enablePan={false}
                 enableRotate={false}
-                enableZoom={false}
+                enableZoom={true}
                 minDistance={10}
                 maxDistance={15}
               />
