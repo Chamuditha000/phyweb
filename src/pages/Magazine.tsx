@@ -173,7 +173,8 @@ export function Magazine() {
           style={{
             width: "100vw",
             height: "100vh",
-            overflowY: "hidden", // ✅ enables vertical scrolling
+            overflowY: "hidden",
+            overflowX: "auto", // ✅ enables vertical scrolling
           }}
         >
           <div style={{ height: "150vh" }}>
