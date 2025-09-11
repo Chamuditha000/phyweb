@@ -10,10 +10,13 @@ import { LuminousBeams } from "./luminousbeam";
 import { PlaneTakeoffScene } from "./plane";
 import { GlassyText } from "./glassyt";
 
-const iframeSrc = process.env.PUBLIC_URL + "/Magazine.html";
 // 🧱 Floor with emissive glow
-<RotateToLandscape maxDeviceWidth={512} />;
+
 function EmbeddedFlipbook() {
+  // Build a relative URL that works on both http(s) and file://
+  const base = document.baseURI;
+  const magazineSrc = new URL("./Magazine.html", base).toString();
+
   return (
     <mesh position={[0, 2.1, -2.7]} castShadow>
       <boxGeometry args={[9.2, 6.7, 0.05]} />
@@ -33,7 +36,7 @@ function EmbeddedFlipbook() {
         }}
       >
         <iframe
-          src={iframeSrc}
+          src={magazineSrc}
           title="Magazine Flipbook"
           style={{
             width: "1440px",
@@ -51,15 +54,18 @@ function EmbeddedFlipbook() {
     </mesh>
   );
 }
+
 function FloorPanels() {
   const isFileMode = window.location.protocol === "file:";
+  const base = document.baseURI;
 
-  const texture = useLoader(
-    THREE.TextureLoader,
-    isFileMode
-      ? "/offline-texture.png" // fallback image in `public/`
-      : process.env.PUBLIC_URL + "/textures/floor.png"
-  );
+  // Use relative URLs (no leading slash) so they resolve under file:// as well
+  const textureUrl = new URL(
+    isFileMode ? "./offline-texture.png" : "./textures/floor.png",
+    base
+  ).toString();
+
+  const texture = useLoader(THREE.TextureLoader, textureUrl);
 
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(2, 3);
@@ -101,6 +107,9 @@ export function Magazine() {
         position: "relative",
       }}
     >
+      {/* ✅ Render here (not at module top, not inside the intro box) */}
+      <RotateToLandscape maxDeviceWidth={512} />
+
       {showIntro && (
         <div
           style={{
@@ -179,7 +188,6 @@ export function Magazine() {
           }}
         >
           <div style={{ height: "150vh" }}>
-            {" "}
             {/* ✅ inner content is taller */}
             <Canvas camera={{ position: [0, 0, 30], fov: 45 }}>
               <ambientLight intensity={0.25} />
