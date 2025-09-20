@@ -53,7 +53,7 @@ export const HomePage = () => {
 
         {/* Scene Elements */}
         {/* Background */}
-        {!showEnvironment && <color attach="background" args={["#931b8bff"]} />}
+        {!showEnvironment && <color attach="background" args={["#a818f6ff"]} />}
 
         {/* Optional delayed environment */}
         {showEnvironment && <Environment preset="dawn" background={false} />}

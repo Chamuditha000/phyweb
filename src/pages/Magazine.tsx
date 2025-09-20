@@ -64,11 +64,15 @@ function GlobalCanvasLoader({ iframeReady }: { iframeReady: boolean }) {
 }
 function EmbeddedFlipbook({ onReady }: { onReady: () => void }) {
   // Build a relative URL that works on both http(s) and file://
+  const isFile =
+    typeof window !== "undefined" && window.location.protocol === "file:";
   const base = document.baseURI;
-  const magazineSrc = new URL("./Magazine.html", base).toString();
+  const magazineSrc = isFile
+    ? "./Magazine.html"
+    : `${process.env.PUBLIC_URL}/Magazine.html`;
 
   return (
-    <mesh position={[0, 2.8, 0.5]} castShadow>
+    <mesh position={[0, 2.8, -0.7]} castShadow>
       <boxGeometry args={[9.2, 6.7, 0.05]} />
       <meshStandardMaterial color="#111" />
       <Html
@@ -108,14 +112,20 @@ function EmbeddedFlipbook({ onReady }: { onReady: () => void }) {
 
 function FloorPanels() {
   const isFileMode = window.location.protocol === "file:";
-  const base = document.baseURI;
 
-  // Use relative URLs (no leading slash) so they resolve under file:// as well
-  const textureUrl = new URL(
-    isFileMode ? "./offline-texture.png" : "./textures/floor.png",
-    base
-  ).toString();
+  // HTTPS copies of your images (must send CORS: *)
+  const FLOOR_HTTP =
+    "https://cdn.jsdelivr.net/gh/Chamuditha000/phyweb@9a2f46b/public/floor.png";
 
+  const textureUrl = isFileMode
+    ? FLOOR_HTTP
+    : `${process.env.PUBLIC_URL}/floor.png`;
+
+  // ensure crossOrigin is set BEFORE any loads (can be top-level in app too)
+  THREE.ImageLoader.prototype.setCrossOrigin?.call(
+    THREE.ImageLoader,
+    "anonymous"
+  );
   const texture = useLoader(THREE.TextureLoader, textureUrl);
 
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -131,7 +141,6 @@ function FloorPanels() {
           receiveShadow
         >
           <planeGeometry args={[65, 100]} />
-
           <meshStandardMaterial
             map={texture}
             emissiveMap={texture}
@@ -260,13 +269,11 @@ export function Magazine() {
                 decay={1.5}
               />
               <FloatingEquations />
-              <SpinningTop />
               <Gball />
               <FloorPanels />
               <PlaneTakeoffScene />
               <EmbeddedFlipbook onReady={() => setIframeReady(true)} />{" "}
               {/* ✅ pass down */}
-              <GlassyText />
               <LuminousBeams
                 height={19}
                 baseY={-10.2}

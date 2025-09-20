@@ -8,20 +8,20 @@
     html, body { margin:0; padding:0; height:100%; background:black; overflow:hidden; }
     .book { width:100%; height:100dvh; display:flex; align-items:center; justify-content:center; position:relative; }
     canvas { width:45vw; height:auto; margin:0 5px; box-shadow:0 0 10px #444; background:#000; }
-    .nav-buttons { 
-      position: fixed; left: 50%; transform: translateX(-50%); 
-      bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 1000;
-    }
+    .nav-buttons { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 1000; }
     .nav-buttons button { min-width:44px; min-height:44px; padding:10px 20px; font-size:1rem; margin:0 10px; cursor:pointer; }
     .file-hint { position: fixed; top:12px; left:12px; z-index:1100; color:#0ff; background: rgba(0,0,0,0.6); padding:10px 12px; border-radius:8px; box-shadow:0 0 12px #0ff5; }
     .file-hint input { display:block; margin-top:8px; }
   </style>
 
-  <!-- PDF.js (works from file:// because worker is CDN-hosted) -->
+  <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
+    // Worker from CDN; disable worker on file:// for reliability
+    const IS_FILE = location.protocol === "file:";
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const DISABLE_WORKER = IS_FILE;
   </script>
 </head>
 <body>
@@ -35,7 +35,7 @@
     <button id="nextBtn">Next ⏩</button>
   </div>
 
-  <!-- file:// fallback UI (only shown if needed) -->
+  <!-- file:// fallback UI -->
   <div id="fileHint" class="file-hint" style="display:none">
     <div><strong>Local mode:</strong> pick your <code>part01.pdf … part39.pdf</code> from the <code>pdfs/</code> folder.</div>
     <input id="pdfPicker" type="file" accept="application/pdf" multiple />
@@ -43,27 +43,33 @@
   </div>
 
   <script>
+    // ---------- Tunables ----------
+    const MAX_DPR      = 1.4;
+    const BASE_SCALE   = 1.15;
+    const MAX_CANVAS_W = 2200;
+    const MAX_CANVAS_H = 3000;
+    const CACHE_KEEP   = 2;
+
     // Expected file names (order matters)
-    const names = [
-      'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
-      'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf',
-      'part11.pdf','part12.pdf','part13.pdf','part14.pdf','part15.pdf',
-      'part16.pdf','part17.pdf','part18.pdf','part19.pdf','part20.pdf',
-      'part21.pdf','part22.pdf','part23.pdf','part24.pdf','part25.pdf',
-      'part26.pdf','part27.pdf','part28.pdf','part29.pdf','part30.pdf',
-      'part31.pdf','part32.pdf','part33.pdf','part34.pdf','part35.pdf',
-      'part36.pdf','part37.pdf','part38.pdf','part39.pdf'
-    ];
+    const names = Array.from({length:39}, (_,i)=>`part${String(i+1).padStart(2,'0')}.pdf`);
 
-    const base = document.baseURI;
-    const isFileMode = location.protocol === "file:";
-
-    // Start with http(s) URLs (also fine for file:// if the browser permits)
-    let urls = names.map(n => new URL(`./pdfs/${n}`, base).toString());
+    // Build default URLs
+    let urls;
+    if (IS_FILE) {
+      // ✅ Pin to your commit for stability:
+      const CDN_BASE = "https://cdn.jsdelivr.net/gh/Chamuditha000/phyweb@9a2f46b27c23a4f6726cc8de72e7ea5975b248d8/public/pdfs/";
+      // (If you want latest main instead: remove the @commit — less stable caching)
+      urls = names.map(n => CDN_BASE + n);
+    } else {
+      // http(s) hosting → use local files
+      const base = document.baseURI;
+      urls = names.map(n => new URL(`./pdfs/${n}`, base).toString());
+    }
 
     // Caches
-    const cache = new Map(); // partIndex -> { pdf, numPages }
+    const cache = new Map(); // partIndex -> { pdf, numPages, lastUsedTick }
     const endAt = new Map(); // partIndex -> cumulative last virtual page number
+    let tick = 0;
 
     let currentPage = 1;
     let isBusy = false;
@@ -73,23 +79,22 @@
     const prevBtn = document.getElementById("prevBtn");
     const nextBtn = document.getElementById("nextBtn");
 
-    // --- file:// fallback: use a picker to build Blob URLs if direct file fetch is blocked
+    // ---------- file:// picker fallback if CDN fails ----------
     async function setupFileModeIfNeeded() {
-      if (!isFileMode) return true;
+      if (!IS_FILE) return true;
       try {
-        // Probe: some browsers allow file:// PDF loads
-        await pdfjsLib.getDocument({ url: urls[0] }).promise;
+        // Probe first CDN PDF fast
+        await pdfjsLib.getDocument({ url: urls[0], disableWorker: DISABLE_WORKER }).promise;
         return true;
-      } catch {
-        // Show picker, build blob URLs
+      } catch (e) {
+        // CDN blocked/offline → show picker
         const hint = document.getElementById('fileHint');
         const picker = document.getElementById('pdfPicker');
         const status = document.getElementById('pickStatus');
         hint.style.display = '';
-
         return new Promise(resolve => {
           picker.onchange = () => {
-            const files = Array.from(picker.files);
+            const files = Array.from(picker.files || []);
             const byName = new Map(files.map(f => [f.name.toLowerCase(), f]));
             const blobUrls = names.map(name => {
               const f = byName.get(name.toLowerCase());
@@ -106,17 +111,35 @@
 
     // --- Loading / rendering
     async function loadPart(partIndex) {
-      if (cache.has(partIndex)) return cache.get(partIndex);
+      if (cache.has(partIndex)) {
+        const entry = cache.get(partIndex);
+        entry.lastUsedTick = ++tick;
+        return entry;
+      }
       const url = urls[partIndex];
       if (!url) throw new Error(`Missing URL for part ${partIndex}`);
-      const pdf = await pdfjsLib.getDocument({ url }).promise;
+      const pdf = await pdfjsLib.getDocument({ url, disableWorker: DISABLE_WORKER }).promise;
       const numPages = pdf.numPages;
-      const entry = { pdf, numPages };
+      const entry = { pdf, numPages, lastUsedTick: ++tick };
       cache.set(partIndex, entry);
 
       const prevEnd = partIndex === 0 ? 0 : (endAt.get(partIndex - 1) ?? 0);
       endAt.set(partIndex, prevEnd + numPages);
+
+      pruneCache();
       return entry;
+    }
+
+    function pruneCache() {
+      if (cache.size <= CACHE_KEEP) return;
+      const entries = Array.from(cache.entries())
+        .sort((a, b) => a[1].lastUsedTick - b[1].lastUsedTick);
+      while (entries.length > CACHE_KEEP) {
+        const [idx, entry] = entries.shift();
+        try { entry.pdf?.destroy?.(); } catch {}
+        cache.delete(idx);
+        // keep endAt so virtual page mapping remains stable
+      }
     }
 
     async function ensureEndAt(partIndex) {
@@ -132,7 +155,7 @@
         await ensureEndAt(i);
         const last = endAt.get(i);
         if (virtualPage <= last) {
-          const { pdf } = cache.get(i);
+          const { pdf } = await loadPart(i);
           const startAt = (i === 0 ? 1 : (endAt.get(i - 1) + 1));
           const pageNum = virtualPage - startAt + 1;
           return { pdf, pageNum, partIndex: i };
@@ -145,24 +168,33 @@
       try {
         const { pdf, pageNum } = await resolveVirtualPage(virtualPage);
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
 
-        const dpi = window.devicePixelRatio || 1;
-        canvas.width  = Math.floor(viewport.width  * dpi);
-        canvas.height = Math.floor(viewport.height * dpi);
+        const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+        let viewport = page.getViewport({ scale: BASE_SCALE * dpr });
 
-        const ctx = canvas.getContext("2d");
-        ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
+        const clamp = Math.min(1, MAX_CANVAS_W / viewport.width, MAX_CANVAS_H / viewport.height);
+        if (clamp < 1) viewport = page.getViewport({ scale: viewport.scale * clamp });
+
+        const w = Math.floor(viewport.width);
+        const h = Math.floor(viewport.height);
+        if (w <= 0 || h <= 0) return;
+
+        if (canvas.width !== w)  canvas.width  = w;
+        if (canvas.height !== h) canvas.height = h;
+
+        const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+        if (!ctx) return;
 
         await page.render({ canvasContext: ctx, viewport }).promise;
       } catch (e) {
         const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // swallow benign errors
       }
     }
 
     async function renderSpread() {
-      await renderToCanvas(leftCanvas, currentPage);
+      await renderToCanvas(leftCanvas,  currentPage);
       await renderToCanvas(rightCanvas, currentPage + 1);
     }
 
@@ -196,7 +228,6 @@
       }
     });
 
-    // Keyboard navigation (← / →)
     window.addEventListener("keydown", (e) => {
       if (e.key === "ArrowRight") nextBtn.click();
       else if (e.key === "ArrowLeft") prevBtn.click();
@@ -210,7 +241,7 @@
         await renderSpread();
       } catch (err) {
         console.error("Init error:", err);
-        alert('Could not render. Ensure PDFs exist under ./pdfs/ (or pick them when prompted).');
+        alert('Could not render. Ensure PDFs exist under ./pdfs/ or pick them when prompted.');
       }
     })();
   </script>
