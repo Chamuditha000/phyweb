@@ -29,3 +29,7 @@ build 2.zip
 # build artifacts
 *.zip
 /build*
+
+# build artifacts
+*.zip
+/build*
