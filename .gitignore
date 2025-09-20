@@ -25,3 +25,7 @@ yarn-error.log*
 # build artifacts
 build 2.zip
 *.zip
+
+# build artifacts
+*.zip
+/build*
