@@ -9,6 +9,11 @@ html, body { margin: 0; padding: 0; overflow-x: hidden; }
   width: 100%;
   height: 100dvh;        /* modern mobile units */
 }
+@keyframes pulse {
+  0%   { opacity: 1; transform: translateX(0); }
+  50%  { opacity: 0.6; transform: translateX(6px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
 
 /* Images/canvases/iframes scale down on phones */
 img, canvas, video, iframe { max-width: 100%; height: auto; display: block; }

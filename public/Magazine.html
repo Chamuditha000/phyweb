@@ -1,61 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>
-  html, body { margin:0; padding:0; height:100%; overflow:hidden; }
-  .book { width:100%; height:100dvh; display:flex; align-items:center; justify-content:center; }
-  canvas { max-width:100%; height:auto; }
-  .nav-buttons { 
-    position: fixed; 
-    left: 50%; 
-    transform: translateX(-50%); 
-    bottom: calc(12px + env(safe-area-inset-bottom)); 
-    z-index: 1000;
-  }
-  .nav-buttons button { min-width:44px; min-height:44px; }
-</style>
   <meta charset="UTF-8" />
-  <title>PDF Flipbook (Lazy)</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <title>PDF Flipbook (Lazy, file:// friendly)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: black;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+    html, body { margin:0; padding:0; height:100%; background:black; overflow:hidden; }
+    .book { width:100%; height:100dvh; display:flex; align-items:center; justify-content:center; position:relative; }
+    canvas { width:45vw; height:auto; margin:0 5px; box-shadow:0 0 10px #444; background:#000; }
+    .nav-buttons { 
+      position: fixed; left: 50%; transform: translateX(-50%); 
+      bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 1000;
     }
-    .book {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-    canvas {
-      width: 45vw;          /* responsive size handled by CSS */
-      height: auto;
-      margin: 0 5px;
-      box-shadow: 0 0 10px #444;
-      background: #000;
-    }
-    .nav-buttons {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-    }
-    .nav-buttons button {
-      padding: 10px 20px;
-      font-size: 1rem;
-      margin: 0 10px;
-      cursor: pointer;
-    }
+    .nav-buttons button { min-width:44px; min-height:44px; padding:10px 20px; font-size:1rem; margin:0 10px; cursor:pointer; }
+    .file-hint { position: fixed; top:12px; left:12px; z-index:1100; color:#0ff; background: rgba(0,0,0,0.6); padding:10px 12px; border-radius:8px; box-shadow:0 0 12px #0ff5; }
+    .file-hint input { display:block; margin-top:8px; }
   </style>
+
+  <!-- PDF.js (works from file:// because worker is CDN-hosted) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  </script>
 </head>
 <body>
   <div class="book">
@@ -68,65 +35,100 @@
     <button id="nextBtn">Next ⏩</button>
   </div>
 
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  <!-- file:// fallback UI (only shown if needed) -->
+  <div id="fileHint" class="file-hint" style="display:none">
+    <div><strong>Local mode:</strong> pick your <code>part01.pdf … part39.pdf</code> from the <code>pdfs/</code> folder.</div>
+    <input id="pdfPicker" type="file" accept="application/pdf" multiple />
+    <div id="pickStatus" style="margin-top:6px; opacity:0.8"></div>
+  </div>
 
-    // List your split parts in order. Files should live at /public/pdfs/partXX.pdf
+  <script>
+    // Expected file names (order matters)
     const names = [
       'part01.pdf','part02.pdf','part03.pdf','part04.pdf','part05.pdf',
       'part06.pdf','part07.pdf','part08.pdf','part09.pdf','part10.pdf',
       'part11.pdf','part12.pdf','part13.pdf','part14.pdf','part15.pdf',
       'part16.pdf','part17.pdf','part18.pdf','part19.pdf','part20.pdf',
-           'part21.pdf','part22.pdf','part23.pdf','part24.pdf','part25.pdf',
+      'part21.pdf','part22.pdf','part23.pdf','part24.pdf','part25.pdf',
       'part26.pdf','part27.pdf','part28.pdf','part29.pdf','part30.pdf',
-           'part31.pdf','part32.pdf','part33.pdf','part34.pdf','part35.pdf',
+      'part31.pdf','part32.pdf','part33.pdf','part34.pdf','part35.pdf',
       'part36.pdf','part37.pdf','part38.pdf','part39.pdf'
     ];
-    const urls = names.map(n => new URL(`pdfs/${n}`, document.baseURI).toString());
 
-    // Lazy cache: partIndex -> { pdf, numPages }
-    const cache = new Map();
-    // Running totals we’ve already learned: partIndex -> endAt (virtual page)
-    const endAt = new Map();  // e.g., endAt.get(0) = last virtual page inside part 0
+    const base = document.baseURI;
+    const isFileMode = location.protocol === "file:";
+
+    // Start with http(s) URLs (also fine for file:// if the browser permits)
+    let urls = names.map(n => new URL(`./pdfs/${n}`, base).toString());
+
+    // Caches
+    const cache = new Map(); // partIndex -> { pdf, numPages }
+    const endAt = new Map(); // partIndex -> cumulative last virtual page number
 
     let currentPage = 1;
+    let isBusy = false;
 
     const leftCanvas  = document.getElementById("leftPage");
     const rightCanvas = document.getElementById("rightPage");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
 
+    // --- file:// fallback: use a picker to build Blob URLs if direct file fetch is blocked
+    async function setupFileModeIfNeeded() {
+      if (!isFileMode) return true;
+      try {
+        // Probe: some browsers allow file:// PDF loads
+        await pdfjsLib.getDocument({ url: urls[0] }).promise;
+        return true;
+      } catch {
+        // Show picker, build blob URLs
+        const hint = document.getElementById('fileHint');
+        const picker = document.getElementById('pdfPicker');
+        const status = document.getElementById('pickStatus');
+        hint.style.display = '';
+
+        return new Promise(resolve => {
+          picker.onchange = () => {
+            const files = Array.from(picker.files);
+            const byName = new Map(files.map(f => [f.name.toLowerCase(), f]));
+            const blobUrls = names.map(name => {
+              const f = byName.get(name.toLowerCase());
+              return f ? URL.createObjectURL(f) : undefined;
+            });
+            if (!blobUrls[0]) { status.textContent = "part01.pdf is required."; return; }
+            urls = blobUrls;
+            status.textContent = `Loaded ${blobUrls.filter(Boolean).length} / ${names.length} parts.`;
+            resolve(true);
+          };
+        });
+      }
+    }
+
+    // --- Loading / rendering
     async function loadPart(partIndex) {
       if (cache.has(partIndex)) return cache.get(partIndex);
-
       const url = urls[partIndex];
-      // Open this part (only when needed)
+      if (!url) throw new Error(`Missing URL for part ${partIndex}`);
       const pdf = await pdfjsLib.getDocument({ url }).promise;
       const numPages = pdf.numPages;
       const entry = { pdf, numPages };
       cache.set(partIndex, entry);
 
-      // Update endAt (cumulative virtual-page limit) for this and all following parts
-      const prevEnd = partIndex === 0 ? 0 : endAt.get(partIndex - 1) ?? 0;
+      const prevEnd = partIndex === 0 ? 0 : (endAt.get(partIndex - 1) ?? 0);
       endAt.set(partIndex, prevEnd + numPages);
       return entry;
     }
 
-    // Ensure we know the cumulative endAt up to (and including) a given part
     async function ensureEndAt(partIndex) {
-      // Walk from 0..partIndex and load any missing parts just enough to get numPages
       for (let i = 0; i <= partIndex; i++) {
-        if (!endAt.has(i)) {
-          await loadPart(i);
-        }
+        if (!endAt.has(i)) await loadPart(i);
       }
     }
 
-    // Resolve a virtual page number to { pdf, pageNum, partIndex }
     async function resolveVirtualPage(virtualPage) {
       if (virtualPage < 1) throw new Error("virtualPage < 1");
-
-      // Step through parts in order until the end covers this virtual page
       for (let i = 0; i < urls.length; i++) {
+        if (!urls[i]) continue; // allow gaps if not all parts were picked
         await ensureEndAt(i);
         const last = endAt.get(i);
         if (virtualPage <= last) {
@@ -136,8 +138,6 @@
           return { pdf, pageNum, partIndex: i };
         }
       }
-
-      // If we got here, virtualPage is beyond the whole book
       throw new RangeError("Virtual page out of range");
     }
 
@@ -145,9 +145,7 @@
       try {
         const { pdf, pageNum } = await resolveVirtualPage(virtualPage);
         const page = await pdf.getPage(pageNum);
-
-        const desiredScale = 1.5;
-        const viewport = page.getViewport({ scale: desiredScale });
+        const viewport = page.getViewport({ scale: 1.5 });
 
         const dpi = window.devicePixelRatio || 1;
         canvas.width  = Math.floor(viewport.width  * dpi);
@@ -158,69 +156,61 @@
 
         await page.render({ canvasContext: ctx, viewport }).promise;
       } catch (e) {
-        // If the page is out of range, clear the canvas
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     }
-// put these once near your other globals
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-let isBusy = false;
 
-async function renderSpread() {
-  // Left = currentPage, Right = currentPage + 1
-  await renderToCanvas(leftCanvas, currentPage);
-  await renderToCanvas(rightCanvas, currentPage + 1);
-}
+    async function renderSpread() {
+      await renderToCanvas(leftCanvas, currentPage);
+      await renderToCanvas(rightCanvas, currentPage + 1);
+    }
 
-nextBtn.addEventListener("click", async () => {
-  if (isBusy) return;
-  isBusy = true;
-  prevBtn.disabled = true; nextBtn.disabled = true;
-  await new Promise(requestAnimationFrame); // paint disabled state
-
-  try {
-    await resolveVirtualPage(currentPage + 2);
-    currentPage += 2;
-    await renderSpread();
-  } finally {
-    prevBtn.disabled = false; nextBtn.disabled = false;
-    isBusy = false;
-  }
-});
-
-prevBtn.addEventListener("click", async () => {
-  if (isBusy || currentPage - 2 < 1) return;
-  isBusy = true;
-  prevBtn.disabled = true; nextBtn.disabled = true;
-  await new Promise(requestAnimationFrame);
-
-  try {
-    currentPage -= 2;
-    await renderSpread();
-  } finally {
-    prevBtn.disabled = false; nextBtn.disabled = false;
-    isBusy = false;
-  }
-});
-
-    // Keyboard navigation (← / →)
-    window.addEventListener("keydown", async (e) => {
-      if (e.key === "ArrowRight") {
-        document.getElementById("nextBtn").click();
-      } else if (e.key === "ArrowLeft") {
-        document.getElementById("prevBtn").click();
+    // --- Controls
+    nextBtn.addEventListener("click", async () => {
+      if (isBusy) return;
+      isBusy = true;
+      prevBtn.disabled = true; nextBtn.disabled = true;
+      await new Promise(requestAnimationFrame);
+      try {
+        await resolveVirtualPage(currentPage + 2); // check if next spread exists
+        currentPage += 2;
+        await renderSpread();
+      } finally {
+        prevBtn.disabled = false; nextBtn.disabled = false;
+        isBusy = false;
       }
     });
 
-    // Initial render
+    prevBtn.addEventListener("click", async () => {
+      if (isBusy || currentPage - 2 < 1) return;
+      isBusy = true;
+      prevBtn.disabled = true; nextBtn.disabled = true;
+      await new Promise(requestAnimationFrame);
+      try {
+        currentPage -= 2;
+        await renderSpread();
+      } finally {
+        prevBtn.disabled = false; nextBtn.disabled = false;
+        isBusy = false;
+      }
+    });
+
+    // Keyboard navigation (← / →)
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") nextBtn.click();
+      else if (e.key === "ArrowLeft") prevBtn.click();
+    });
+
+    // --- Boot
     (async () => {
+      const ok = await setupFileModeIfNeeded();
+      if (!ok) return; // waiting for user to pick files
       try {
         await renderSpread();
       } catch (err) {
         console.error("Init error:", err);
-        alert('Could not render. Check that /public/pdfs/part01.pdf exists and is accessible.');
+        alert('Could not render. Ensure PDFs exist under ./pdfs/ (or pick them when prompted).');
       }
     })();
   </script>

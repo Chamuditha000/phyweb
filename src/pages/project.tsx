@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, Box } from "@react-three/drei";
 import * as THREE from "three";
@@ -15,6 +15,170 @@ interface Event {
 
 function getImageFolder(title: string | undefined) {
   return (title || "").toLowerCase().replace(/\s+/g, "").replace(/[^\w]/g, "");
+}
+function ScrollHint() {
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const isTouch = useMemo(
+    () =>
+      typeof navigator !== "undefined" ? navigator.maxTouchPoints > 0 : false,
+    []
+  );
+
+  const getEl = () => document.getElementById("timeline-scroll");
+
+  const scrollByDir = (dir: "left" | "right") => {
+    const el = getEl();
+    if (!el) return;
+    const delta = Math.round(el.clientWidth * 0.05); // ~40% viewport
+    el.scrollBy({ left: dir === "right" ? delta : -delta, behavior: "smooth" });
+  };
+
+  const atLeftEnd = !canLeft && canRight; // only right possible
+  const atRightEnd = canLeft && !canRight; // only left possible
+  const inMiddle = canLeft && canRight; // both possible
+
+  // Badge click: only act at ends. In middle, do nothing.
+  const handleBadgeClick = () => {
+    if (atLeftEnd) scrollByDir("right");
+    else if (atRightEnd) scrollByDir("left");
+    // inMiddle → no-op
+  };
+
+  useEffect(() => {
+    const el = getEl();
+    if (!el) return;
+
+    const update = () => {
+      // tiny epsilon for float scroll mismatch
+      const eps = 2;
+      setCanLeft(el.scrollLeft > eps);
+      setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - eps);
+    };
+
+    update();
+    el.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  if (!canLeft && !canRight) return null;
+
+  return (
+    <>
+      <style>{`
+        .shp-fade {
+          position: fixed; top: 0; height: 100vh; width: 64px;
+          pointer-events: none; z-index: 9998;
+        }
+        .shp-fade-left  { left: 0;  background: linear-gradient(to right, rgba(0,0,0,0.18), rgba(0,0,0,0)); }
+        .shp-fade-right { right: 0; background: linear-gradient(to left,  rgba(0,0,0,0.18), rgba(0,0,0,0)); }
+
+        .shp-hint {
+          position: fixed; bottom: 20px; right: 36px; z-index: 9999;
+          display: flex; align-items: center; gap: 14px;
+          font-family: Orbitron, sans-serif; font-size: 1.2rem;
+          color: #00ffff; text-shadow: 0 0 8px rgba(0,255,255,0.6);
+          padding: 14px 22px; border-radius: 999px;
+          background: rgba(0,26,51,0.55); border: 1px solid rgba(0,255,255,0.35);
+          backdrop-filter: blur(6px); transform: scale(1.2);
+          pointer-events: auto;
+          transition: opacity .2s ease, filter .2s ease, cursor .2s ease;
+        }
+        .shp-hint.clickable { cursor: pointer; filter: none; opacity: 1; }
+        .shp-hint.disabled  { cursor: default; filter: grayscale(0.3); opacity: 0.85; }
+
+        .shp-chevrons { display: inline-flex; gap: 4px; font-size: 1.8rem; }
+        .shp-btn { pointer-events: auto; cursor: pointer; }
+
+        @keyframes nudgeRight {
+          0% { transform: translateX(0); opacity: 1; }
+          50% { transform: translateX(6px); opacity: 0.75; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes nudgeLeft {
+          0% { transform: translateX(0); opacity: 1; }
+          50% { transform: translateX(-6px); opacity: 0.75; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes glowPulse {
+          0% { box-shadow: 0 0 10px rgba(0,255,255,0.25); }
+          50% { box-shadow: 0 0 18px rgba(0,255,255,0.45); }
+          100% { box-shadow: 0 0 10px rgba(0,255,255,0.25); }
+        }
+        .shp-hint-anim { animation: glowPulse 1.8s ease-in-out infinite; }
+        .shp-chevron-right { animation: nudgeRight 1.2s ease-in-out infinite; }
+        .shp-chevron-left  { animation: nudgeLeft  1.2s ease-in-out infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .shp-hint-anim, .shp-chevron-right, .shp-chevron-left { animation: none !important; }
+        }
+      `}</style>
+
+      {canLeft && <div className="shp-fade shp-fade-left" />}
+      {canRight && <div className="shp-fade shp-fade-right" />}
+
+      <div
+        className={`shp-hint shp-hint-anim ${
+          inMiddle ? "disabled" : "clickable"
+        }`}
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          if (!inMiddle) handleBadgeClick();
+        }}
+        onKeyDown={(e) => {
+          if (!inMiddle && (e.key === "Enter" || e.key === " "))
+            handleBadgeClick();
+          if (e.key === "ArrowRight") scrollByDir("right");
+          if (e.key === "ArrowLeft") scrollByDir("left");
+        }}
+        title={
+          inMiddle
+            ? "Use the arrows to scroll"
+            : atLeftEnd
+            ? "Click to scroll right"
+            : "Click to scroll left"
+        }
+      >
+        {canLeft && (
+          <span
+            className="shp-chevrons shp-chevron-left shp-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              scrollByDir("left");
+            }}
+            title="Scroll left"
+            aria-hidden
+          >
+            ‹‹
+          </span>
+        )}
+
+        <span style={{ letterSpacing: "0.5px", fontWeight: 600 }}>
+          {isTouch ? "Swipe" : "Scroll"}
+        </span>
+
+        {canRight && (
+          <span
+            className="shp-chevrons shp-chevron-right shp-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              scrollByDir("right");
+            }}
+            title="Scroll right"
+            aria-hidden
+          >
+            ››
+          </span>
+        )}
+      </div>
+    </>
+  );
 }
 
 const events: Event[] = [
@@ -270,17 +434,20 @@ const groupedEvents = Object.values(
 const SPACING_X = 5;
 function EventCard({
   event,
+  base,
   offset,
-  groupIndex,
   onClick,
 }: {
   event: Event;
+  base: [number, number, number];
   offset: [number, number];
-  groupIndex: number;
   onClick: () => void;
 }) {
+  const [bx, by, bz] = base;
+  const [dx, dy] = offset;
+
   return (
-    <Html position={[groupIndex * 3.5 + offset[0], 1.5 + offset[1], 2]}>
+    <Html position={[bx + dx, by + dy, bz]}>
       <div
         onClick={onClick}
         style={{
@@ -291,11 +458,12 @@ function EventCard({
           borderRadius: "10px",
           boxShadow: "0 0 10px #00ffff88",
           color: "#00ffff",
-          fontFamily: "Orbitron, sans-serif",
+          fontFamily: "'Times New Roman', serif",
           cursor: "pointer",
           whiteSpace: "normal",
           wordWrap: "break-word",
           textAlign: "center",
+          fontSize: "1.5rem",
         }}
       >
         {event.title}
@@ -303,7 +471,6 @@ function EventCard({
     </Html>
   );
 }
-
 function EventBlock({
   position,
   month,
@@ -339,7 +506,7 @@ function EventBlock({
             borderRadius: "10px",
             border: "1px solid #00ffff",
             color: "#00ffff",
-            fontFamily: "Orbitron, sans-serif",
+            fontFamily: "'Times New Roman', serif",
             fontSize: "1.2rem",
             textAlign: "center",
             minWidth: "140px",
@@ -347,7 +514,7 @@ function EventBlock({
             backdropFilter: "blur(5px)",
           }}
         >
-          <strong style={{ fontSize: "1.4rem" }}>{month}</strong>
+          <strong style={{ fontSize: "1.9rem" }}>{month}</strong>
         </div>
       </Html>
     </group>
@@ -444,9 +611,9 @@ export const Projects = () => {
           <div
             style={{
               width: "40%",
-              background: "#000",
+              background: "#252323ff",
               color: "#00ffff",
-              fontFamily: "Orbitron, sans-serif",
+              fontFamily: "'Times New Roman', serif",
               padding: "30px 50px",
               overflowY: "auto",
             }}
@@ -471,7 +638,7 @@ export const Projects = () => {
                 border: "2px solid #00ffff",
                 borderRadius: "8px",
                 cursor: "pointer",
-                fontFamily: "Orbitron, sans-serif",
+                fontFamily: "'Times New Roman', serif",
                 letterSpacing: "1px",
                 textShadow: "0 0 6px #00ffffcc",
                 boxShadow: "0 0 12px #00ffff66",
@@ -505,11 +672,12 @@ export const Projects = () => {
             </h1>
             <div
               style={{
-                background: "#001a33",
+                background: "#606469ff",
                 borderRadius: "12px",
                 padding: "30px",
                 lineHeight: 1.7,
                 fontSize: "1.05rem",
+                fontFamily: "'Times New Roman', serif",
                 boxShadow: "0 0 12px #00ffff22",
                 border: "1px solid #00ffff33",
                 height: "calc(100vh - 220px)",
@@ -528,7 +696,7 @@ export const Projects = () => {
               width: "60%",
               height: "100vh",
               position: "relative",
-              background: "#000",
+              background: "#090909ff",
               overflow: "hidden",
             }}
           >
@@ -569,8 +737,9 @@ export const Projects = () => {
             height: "100vh",
             overflowX: "scroll",
             overflowY: "hidden",
-            background: "black",
+            background: "white",
             whiteSpace: "nowrap",
+            position: "relative", // i
           }}
         >
           <div
@@ -580,6 +749,14 @@ export const Projects = () => {
               position: "relative",
             }}
           >
+            <ScrollHint />
+            <div
+              style={{
+                width: `${groupedEvents.length * 300}px`,
+                height: "100vh",
+                position: "relative",
+              }}
+            ></div>
             <Canvas
               style={{
                 position: "absolute",
@@ -593,19 +770,24 @@ export const Projects = () => {
               <ambientLight intensity={0.4} />
               <pointLight position={[10, 20, 10]} intensity={1.5} />
               <RotateToLandscape maxDeviceWidth={1024} />
+
               <CameraScroll scroll={scroll} />
               {groupedEvents.map((group, i) => (
                 <group key={i}>
-                  <EventBlock position={[i * 3.6, 0, 2]} month={group.month} />
+                  <EventBlock
+                    position={[i * 3.6 - 3.6, 0, 2]}
+                    month={group.month}
+                  />
+
                   {group.events.map((event, j) => (
                     <EventCard
                       key={j}
                       event={event}
+                      base={[i * 3.6 - 3.6, 0, 2]} // align under the month box
                       offset={[
-                        j * 0.1 - group.events.length * 0.5,
-                        -1.5 - j * 1.3,
+                        j * 0.2 - ((group.events.length - 1) * 0.2) / 2, // centered spread
+                        -j * 1.2, // stagger downward
                       ]}
-                      groupIndex={i}
                       onClick={() => setSelectedEvent(event)}
                     />
                   ))}

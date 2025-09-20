@@ -9,16 +9,66 @@ import { Gball } from "./gball";
 import { LuminousBeams } from "./luminousbeam";
 import { PlaneTakeoffScene } from "./plane";
 import { GlassyText } from "./glassyt";
-
+import { useProgress } from "@react-three/drei";
 // 🧱 Floor with emissive glow
 
-function EmbeddedFlipbook() {
+function GlobalCanvasLoader({ iframeReady }: { iframeReady: boolean }) {
+  const { active, progress } = useProgress();
+  const show = active || !iframeReady;
+
+  if (!show) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.85)",
+        color: "#00ffff",
+        zIndex: 9999,
+        fontFamily: "Orbitron, sans-serif",
+        textAlign: "center",
+        padding: 24,
+      }}
+    >
+      <div>
+        <div
+          style={{
+            margin: "0 auto 16px",
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            border: "4px solid rgba(0,255,255,0.25)",
+            borderTopColor: "#00ffff",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        <div style={{ fontSize: "1.2rem", marginBottom: 8 }}>
+          Loading 3D space & magazine…
+        </div>
+        <div style={{ opacity: 0.85 }}>
+          {Math.round(progress)}%{!active && !iframeReady ? " (magazine…)" : ""}
+        </div>
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+function EmbeddedFlipbook({ onReady }: { onReady: () => void }) {
   // Build a relative URL that works on both http(s) and file://
   const base = document.baseURI;
   const magazineSrc = new URL("./Magazine.html", base).toString();
 
   return (
-    <mesh position={[0, 2.1, -2.7]} castShadow>
+    <mesh position={[0, 2.8, -1.7]} castShadow>
       <boxGeometry args={[9.2, 6.7, 0.05]} />
       <meshStandardMaterial color="#111" />
       <Html
@@ -38,6 +88,7 @@ function EmbeddedFlipbook() {
         <iframe
           src={magazineSrc}
           title="Magazine Flipbook"
+          onLoad={onReady}
           style={{
             width: "1440px",
             height: "1080px",
@@ -97,7 +148,7 @@ function FloorPanels() {
 
 export function Magazine() {
   const [showIntro, setShowIntro] = useState(true);
-
+  const [iframeReady, setIframeReady] = useState(false);
   return (
     <div
       style={{
@@ -187,9 +238,10 @@ export function Magazine() {
             overflowX: "auto", // ✅ enables h scrolling
           }}
         >
-          <div style={{ height: "150vh" }}>
+          <GlobalCanvasLoader iframeReady={iframeReady} /> {/* ✅ add here */}
+          <div style={{ height: "180vh" }}>
             {/* ✅ inner content is taller */}
-            <Canvas camera={{ position: [0, 0, 30], fov: 45 }}>
+            <Canvas camera={{ position: [0, 0, 20], fov: 45 }}>
               <ambientLight intensity={0.25} />
               <spotLight
                 position={[10, 15, 10]}
@@ -212,8 +264,8 @@ export function Magazine() {
               <Gball />
               <FloorPanels />
               <PlaneTakeoffScene />
-              <EmbeddedFlipbook />
-
+              <EmbeddedFlipbook onReady={() => setIframeReady(true)} />{" "}
+              {/* ✅ pass down */}
               <GlassyText />
               <LuminousBeams
                 height={19}

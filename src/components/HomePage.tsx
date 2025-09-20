@@ -144,11 +144,11 @@ export const HomePage = () => {
           letterSpacing: "4px",
           textShadow: `
             0 0 10px #fff,
-            0 0 20px #00ffff,
-            0 0 30px #0080ff
+            0 0 20px #3a4141ff,
+            0 0 30px #1c1d1eff
           `,
           zIndex: "10",
-          fontFamily: "'Orbitron', sans-serif",
+          fontFamily: "'Times New Roman', serif",
         }}
       >
         PHYSICS SOCIETY
@@ -166,11 +166,11 @@ export const HomePage = () => {
           letterSpacing: "4px",
           textShadow: `
             0 0 10px #fff,
-            0 0 20px #00ffff,
-            0 0 30px #0080ff
+            0 0 20px #343d3dff,
+            0 0 30px #32393fff
           `,
           zIndex: "10",
-          fontFamily: "'Orbitron', sans-serif",
+          fontFamily: "'Times New Roman', serif",
         }}
       >
         University Of Ruhuna
