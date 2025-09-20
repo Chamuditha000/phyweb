@@ -68,7 +68,7 @@ function EmbeddedFlipbook({ onReady }: { onReady: () => void }) {
   const magazineSrc = new URL("./Magazine.html", base).toString();
 
   return (
-    <mesh position={[0, 2.8, -1.7]} castShadow>
+    <mesh position={[0, 2.8, 0.5]} castShadow>
       <boxGeometry args={[9.2, 6.7, 0.05]} />
       <meshStandardMaterial color="#111" />
       <Html
