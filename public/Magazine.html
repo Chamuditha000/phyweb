@@ -2,26 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Flipbook (Lazy, file:// friendly)</title>
+  <title>PDF Flipbook (Google Drive API)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <style>
-    html, body { margin:0; padding:0; height:100%; background:black; overflow:hidden; }
+    html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
     .book { width:100%; height:100dvh; display:flex; align-items:center; justify-content:center; position:relative; }
     canvas { width:45vw; height:auto; margin:0 5px; box-shadow:0 0 10px #444; background:#000; }
-    .nav-buttons { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 1000; }
+    .nav-buttons { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(12px + env(safe-area-inset-bottom)); z-index:1000; }
     .nav-buttons button { min-width:44px; min-height:44px; padding:10px 20px; font-size:1rem; margin:0 10px; cursor:pointer; }
-    .file-hint { position: fixed; top:12px; left:12px; z-index:1100; color:#0ff; background: rgba(0,0,0,0.6); padding:10px 12px; border-radius:8px; box-shadow:0 0 12px #0ff5; }
-    .file-hint input { display:block; margin-top:8px; }
+    .err { position:fixed; top:12px; left:12px; right:12px; color:#0ff; font:14px/1.4 monospace; }
   </style>
 
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    // Worker from CDN; disable worker on file:// for reliability
     const IS_FILE = location.protocol === "file:";
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    // Workers/range/stream off under file:// to avoid oddities; OK on localhost
     const DISABLE_WORKER = IS_FILE;
+    const DISABLE_RANGE  = IS_FILE;
+    const DISABLE_STREAM = IS_FILE;
   </script>
 </head>
 <body>
@@ -35,81 +36,83 @@
     <button id="nextBtn">Next ⏩</button>
   </div>
 
-  <!-- file:// fallback UI -->
-  <div id="fileHint" class="file-hint" style="display:none">
-    <div><strong>Local mode:</strong> pick your <code>part01.pdf … part39.pdf</code> from the <code>pdfs/</code> folder.</div>
-    <input id="pdfPicker" type="file" accept="application/pdf" multiple />
-    <div id="pickStatus" style="margin-top:6px; opacity:0.8"></div>
-  </div>
+  <div id="err" class="err"></div>
 
   <script>
-    // ---------- Tunables ----------
-    const MAX_DPR      = 1.4;
-    const BASE_SCALE   = 1.15;
-    const MAX_CANVAS_W = 2200;
-    const MAX_CANVAS_H = 3000;
-    const CACHE_KEEP   = 2;
+    // ---------- CONFIG: put your Google API key here ----------
+    const DRIVE_API_KEY = "AIzaSyB7mUD0plS32riYvpeMQB6Giz_AA2JI0DE"; // <-- replace
 
-    // Expected file names (order matters)
+    // Expected files in order:
     const names = Array.from({length:39}, (_,i)=>`part${String(i+1).padStart(2,'0')}.pdf`);
 
-    // Build default URLs
-    let urls;
-    if (IS_FILE) {
-      // ✅ Pin to your commit for stability:
-      const CDN_BASE = "https://cdn.jsdelivr.net/gh/Chamuditha000/phyweb@9a2f46b27c23a4f6726cc8de72e7ea5975b248d8/public/pdfs/";
-      // (If you want latest main instead: remove the @commit — less stable caching)
-      urls = names.map(n => CDN_BASE + n);
-    } else {
-      // http(s) hosting → use local files
-      const base = document.baseURI;
-      urls = names.map(n => new URL(`./pdfs/${n}`, base).toString());
+    // Drive file IDs (files must be "Anyone with the link – Viewer")
+    const DRIVE_IDS = {
+      "part01.pdf": "1KRrM98vvRqUDzUgir6P8SFCxgHnZy7KF",
+      "part02.pdf": "1b6gFrJg_nTsiWF0hfSkwylGHwGhVulDV",
+      "part03.pdf": "1o16qf56eblLliMhPtVLotwPBtmLe3Kza",
+      "part04.pdf": "1w61bwXMO2umokzvC5mWHFjATy-OOhvhe",
+      "part05.pdf": "19RLDxH8QmzoFcuhIAY2QTNUKeY9rU3Xs",
+      "part06.pdf": "19RLDxH8QmzoFcuhIAY2QTNUKeY9rU3Xs",
+      "part07.pdf": "1G8W92rw52eM_rTw5kaZo8ObLcusSodSZ",
+      "part08.pdf": "1Niw1G8CP61LEl3cwPT-XC3ec5DrNOuLx",
+      "part09.pdf": "1fpXTIhwbOCvZwidrIC5f8UU5vhDKfy0f",
+      "part10.pdf": "1tY_ifM3vdZAN4Di4uIBtnoCxQr2HP4oS",
+      "part11.pdf": "1VtZ8C-9SovAkNVyR_njKC32MYaJrJhtv",
+      "part12.pdf": "1Wyusqo8rnHXinnaqUrJk0L1ThbG_oDHb",
+      "part13.pdf": "1vJaIFZt1pff4Ey_E7ZMsCJlbdLZ6KvOi",
+      "part14.pdf": "11iYuPCP4g9hC-n2LH4V6vDv04CiTJwDr",
+      "part15.pdf": "1VK3R_CY1azGZXF4bvf8s5buVz6mFfaKp",
+      "part16.pdf": "1-bXd8V0Yj3vI1NiC07Rfwc3AK1cFf85q",
+      "part17.pdf": "1LJA-ZSFpzbLDN-NIh_PxK5SaSaxLdgaI",
+      "part18.pdf": "1W2uYecYsOrJQv_jcAynCMYPmyhu5-Oea",
+      "part19.pdf": "1LJsYlvd4NPLl5ut-ZtMaDlmg_EMl2RIA",
+      "part20.pdf": "1EbriLfVmgpsOYqP9nZmo9YpCcO1iqxrx",
+      "part21.pdf": "1EDbrYIg0bGMRFtZkJfjac99fehg3GAsX",
+      "part22.pdf": "1U5tjpJkMH4atbQX34U1d-J6pyP6R0M1i",
+      "part23.pdf": "1v7nizIVGWaTN_8QXEIHLSSnhw25DLaIU",
+      "part24.pdf": "1pdPYXsXVVlDzxnGhX5zgZgLYEJYVH2MS",
+      "part25.pdf": "1Hzq_eCFL2W8KoxrJINDEUCkd2SEwpRzr",
+      "part26.pdf": "1jN7Dc3l6kjEfrrfzlzrfi9eusZQpyxc2",
+      "part27.pdf": "1NCbLf-IOcoEyEiQL7xg6DaZbtenvTgPz",
+      "part28.pdf": "1YGkSqnEiJF06x3NvuSL1AOgnx6FWa2sQ",
+      "part29.pdf": "1c5pwxQfTHOfPkMHxq74EoZclP_XkV-6v",
+      "part30.pdf": "1ru6w-a1JWV_SCKKm62kR5QrTyIwJ2R5m",
+      "part31.pdf": "1NDADtVFd2gQyxtGBLKmDkzPMKRLbaeqO",
+      "part32.pdf": "1ZkyomuxFRl8RlhpKPZl-oaQV7-QyqAAP",
+      "part33.pdf": "1OBq7ASp96uVYXie9lry6nu4OKJ2HAi5Y",
+      "part34.pdf": "1Gf8b0CnPYilsCkioOn3hR07tti57zYXR",
+      "part35.pdf": "1vWwAbvSKFg7mDLbu46D4WKn3FtwFUsGB",
+      "part36.pdf": "1HIQs27AulAZ_-GA1enT_JeibpWqdOfDf",
+      "part37.pdf": "1VZnuXuSp0KatxqEmBYPe3P04X5vtAtwI",
+      "part38.pdf": "1eW5WfNUBbDJ9xpFBoO5kCgpZPx38OfE8",
+      "part39.pdf": "1lrfS4FlxayuNLYShea4Ignrbpneh-4CA"
+    };
+
+    // Build a CORS-friendly URL for each Drive file using the Google Drive API:
+    function driveApiUrl(id) {
+      return `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${DRIVE_API_KEY}`;
     }
 
-    // Caches
-    const cache = new Map(); // partIndex -> { pdf, numPages, lastUsedTick }
-    const endAt = new Map(); // partIndex -> cumulative last virtual page number
-    let tick = 0;
+    // Build the URL list (one per part)
+    const urls = names.map(n => {
+      const id = (DRIVE_IDS[n] || "").trim();
+      return id ? driveApiUrl(id) : undefined;
+    });
 
-    let currentPage = 1;
-    let isBusy = false;
+    const errBox = document.getElementById('err');
+    const say = msg => { console.log(msg); errBox.textContent = msg; };
+
+    // ---- Flipbook/Rendering ----
+    const MAX_DPR = 1.4, BASE_SCALE = 1.15, MAX_CANVAS_W = 2200, MAX_CANVAS_H = 3000, CACHE_KEEP = 2;
+    const cache = new Map(); // partIndex -> { pdf, numPages, lastUsedTick }
+    const endAt = new Map(); // partIndex -> cumulative end page
+    let tick = 0, currentPage = 1, isBusy = false;
 
     const leftCanvas  = document.getElementById("leftPage");
     const rightCanvas = document.getElementById("rightPage");
     const prevBtn = document.getElementById("prevBtn");
     const nextBtn = document.getElementById("nextBtn");
 
-    // ---------- file:// picker fallback if CDN fails ----------
-    async function setupFileModeIfNeeded() {
-      if (!IS_FILE) return true;
-      try {
-        // Probe first CDN PDF fast
-        await pdfjsLib.getDocument({ url: urls[0], disableWorker: DISABLE_WORKER }).promise;
-        return true;
-      } catch (e) {
-        // CDN blocked/offline → show picker
-        const hint = document.getElementById('fileHint');
-        const picker = document.getElementById('pdfPicker');
-        const status = document.getElementById('pickStatus');
-        hint.style.display = '';
-        return new Promise(resolve => {
-          picker.onchange = () => {
-            const files = Array.from(picker.files || []);
-            const byName = new Map(files.map(f => [f.name.toLowerCase(), f]));
-            const blobUrls = names.map(name => {
-              const f = byName.get(name.toLowerCase());
-              return f ? URL.createObjectURL(f) : undefined;
-            });
-            if (!blobUrls[0]) { status.textContent = "part01.pdf is required."; return; }
-            urls = blobUrls;
-            status.textContent = `Loaded ${blobUrls.filter(Boolean).length} / ${names.length} parts.`;
-            resolve(true);
-          };
-        });
-      }
-    }
-
-    // --- Loading / rendering
     async function loadPart(partIndex) {
       if (cache.has(partIndex)) {
         const entry = cache.get(partIndex);
@@ -117,28 +120,33 @@
         return entry;
       }
       const url = urls[partIndex];
-      if (!url) throw new Error(`Missing URL for part ${partIndex}`);
-      const pdf = await pdfjsLib.getDocument({ url, disableWorker: DISABLE_WORKER }).promise;
+      if (!url) throw new Error(`Missing Drive ID for ${names[partIndex]}`);
+
+      const pdf = await pdfjsLib.getDocument({
+        url,
+        withCredentials: false,
+        disableWorker: DISABLE_WORKER,
+        disableRange:  DISABLE_RANGE,
+        disableStream: DISABLE_STREAM
+      }).promise;
+
       const numPages = pdf.numPages;
       const entry = { pdf, numPages, lastUsedTick: ++tick };
       cache.set(partIndex, entry);
 
       const prevEnd = partIndex === 0 ? 0 : (endAt.get(partIndex - 1) ?? 0);
       endAt.set(partIndex, prevEnd + numPages);
-
       pruneCache();
       return entry;
     }
 
     function pruneCache() {
       if (cache.size <= CACHE_KEEP) return;
-      const entries = Array.from(cache.entries())
-        .sort((a, b) => a[1].lastUsedTick - b[1].lastUsedTick);
+      const entries = Array.from(cache.entries()).sort((a, b) => a[1].lastUsedTick - b[1].lastUsedTick);
       while (entries.length > CACHE_KEEP) {
         const [idx, entry] = entries.shift();
-        try { entry.pdf?.destroy?.(); } catch {}
+        try { entry[1]?.pdf?.destroy?.(); } catch {}
         cache.delete(idx);
-        // keep endAt so virtual page mapping remains stable
       }
     }
 
@@ -151,14 +159,14 @@
     async function resolveVirtualPage(virtualPage) {
       if (virtualPage < 1) throw new Error("virtualPage < 1");
       for (let i = 0; i < urls.length; i++) {
-        if (!urls[i]) continue; // allow gaps if not all parts were picked
+        if (!urls[i]) continue;
         await ensureEndAt(i);
         const last = endAt.get(i);
         if (virtualPage <= last) {
           const { pdf } = await loadPart(i);
           const startAt = (i === 0 ? 1 : (endAt.get(i - 1) + 1));
           const pageNum = virtualPage - startAt + 1;
-          return { pdf, pageNum, partIndex: i };
+          return { pdf, pageNum };
         }
       }
       throw new RangeError("Virtual page out of range");
@@ -171,12 +179,10 @@
 
         const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
         let viewport = page.getViewport({ scale: BASE_SCALE * dpr });
-
         const clamp = Math.min(1, MAX_CANVAS_W / viewport.width, MAX_CANVAS_H / viewport.height);
         if (clamp < 1) viewport = page.getViewport({ scale: viewport.scale * clamp });
 
-        const w = Math.floor(viewport.width);
-        const h = Math.floor(viewport.height);
+        const w = Math.floor(viewport.width), h = Math.floor(viewport.height);
         if (w <= 0 || h <= 0) return;
 
         if (canvas.width !== w)  canvas.width  = w;
@@ -187,9 +193,8 @@
 
         await page.render({ canvasContext: ctx, viewport }).promise;
       } catch (e) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // swallow benign errors
+        console.error(e);
+        say("Failed to render. Check Drive sharing, IDs, and API key.");
       }
     }
 
@@ -198,34 +203,25 @@
       await renderToCanvas(rightCanvas, currentPage + 1);
     }
 
-    // --- Controls
     nextBtn.addEventListener("click", async () => {
       if (isBusy) return;
-      isBusy = true;
-      prevBtn.disabled = true; nextBtn.disabled = true;
+      isBusy = true; prevBtn.disabled = true; nextBtn.disabled = true;
       await new Promise(requestAnimationFrame);
       try {
-        await resolveVirtualPage(currentPage + 2); // check if next spread exists
+        await resolveVirtualPage(currentPage + 2);
         currentPage += 2;
         await renderSpread();
-      } finally {
-        prevBtn.disabled = false; nextBtn.disabled = false;
-        isBusy = false;
-      }
+      } finally { prevBtn.disabled = false; nextBtn.disabled = false; isBusy = false; }
     });
 
     prevBtn.addEventListener("click", async () => {
       if (isBusy || currentPage - 2 < 1) return;
-      isBusy = true;
-      prevBtn.disabled = true; nextBtn.disabled = true;
+      isBusy = true; prevBtn.disabled = true; nextBtn.disabled = true;
       await new Promise(requestAnimationFrame);
       try {
         currentPage -= 2;
         await renderSpread();
-      } finally {
-        prevBtn.disabled = false; nextBtn.disabled = false;
-        isBusy = false;
-      }
+      } finally { prevBtn.disabled = false; nextBtn.disabled = false; isBusy = false; }
     });
 
     window.addEventListener("keydown", (e) => {
@@ -233,16 +229,11 @@
       else if (e.key === "ArrowLeft") prevBtn.click();
     });
 
-    // --- Boot
     (async () => {
-      const ok = await setupFileModeIfNeeded();
-      if (!ok) return; // waiting for user to pick files
-      try {
-        await renderSpread();
-      } catch (err) {
-        console.error("Init error:", err);
-        alert('Could not render. Ensure PDFs exist under ./pdfs/ or pick them when prompted.');
-      }
+      const missing = names.filter(n => !DRIVE_IDS[n]);
+      if (missing.length) say("Missing Drive IDs for: " + missing.join(", "));
+      if (DRIVE_API_KEY === "YOUR_API_KEY_HERE") say("Set DRIVE_API_KEY.");
+      await renderSpread();
     })();
   </script>
 </body>
